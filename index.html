@@ -1468,10 +1468,11 @@ function verdict(price) {
   const ms = tones(v.seq, v.type) || 0;
   // Nach der Kamera-App ist die Sprachausgabe auf manchen Handys pausiert: erst fortsetzen, dann kurz warten, dann sprechen.
   try { speechSynthesis.resume(); speechSynthesis.cancel(); } catch (e) {}
-  // Zuerst die Frauenstimme des Handys; spricht sie nicht innerhalb kurzer Zeit (z. B. iPhone nach der Kamera), springt der Sprach-Clip ein.
+  // Zuerst die eigenen Aufnahmen (sounds/*.mp3); nur wenn die noch nicht geladen sind, spricht die Stimme des Handys.
   setTimeout(() => {
+    if (playClip(v.clip)) return; // eigene Aufnahmen haben Vorrang
     let done = false;
-    const fallback = () => { if (done) return; done = true; try { speechSynthesis.cancel(); } catch (e) {} playClip(v.clip); };
+    const fallback = () => { if (done) return; done = true; try { speechSynthesis.cancel(); } catch (e) {} };
     try {
       speechSynthesis.resume();
       const u = new SpeechSynthesisUtterance(v.say); u.lang = 'de-DE';
