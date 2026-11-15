@@ -1424,7 +1424,9 @@ function unlockAudio() {
   if (!speechPrimed && 'speechSynthesis' in window) { speechPrimed = true; try { const u = new SpeechSynthesisUtterance(' '); u.volume = 0; speechSynthesis.speak(u); } catch (e) {} }
 }
 for (const ev of ['click', 'touchend', 'keydown']) document.addEventListener(ev, unlockAudio, {capture: true, passive: true});
-document.addEventListener('visibilitychange', () => { if (!document.hidden) audio(); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { audio(); try { speechSynthesis.resume(); } catch (e) {} } });
+window.addEventListener('focus', () => { audio(); try { speechSynthesis.resume(); } catch (e) {} });
+for (const id of ['cam', 'gal']) document.getElementById(id).addEventListener('change', () => { unlockAudio(); try { speechSynthesis.resume(); } catch (e) {} });
 function tones(seq, type = 'square') {
   const a = audio(); if (!a) return; let t = a.currentTime + 0.02;
   for (const [f, d] of seq) {
@@ -1445,7 +1447,9 @@ function verdict(price) {
   if (price == null || isNaN(price)) return;
   const i = VERDICTS.findIndex(v => price < v.max), v = VERDICTS[i];
   const ms = tones(v.seq, v.type) || 0;
-  setTimeout(() => { try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(v.say); u.lang = 'de-DE'; const vo = speechSynthesis.getVoices().find(x => /^de/i.test(x.lang)); if (vo) u.voice = vo; u.rate = 1; u.pitch = i === 3 ? 1.3 : i === 0 ? 0.7 : 1; speechSynthesis.speak(u); } catch (e) {} }, ms);
+  // Nach der Kamera-App ist die Sprachausgabe auf manchen Handys pausiert: erst fortsetzen, dann kurz warten, dann sprechen.
+  try { speechSynthesis.resume(); speechSynthesis.cancel(); } catch (e) {}
+  setTimeout(() => { try { speechSynthesis.resume(); const u = new SpeechSynthesisUtterance(v.say); u.lang = 'de-DE'; const vo = speechSynthesis.getVoices().find(x => /^de/i.test(x.lang)); if (vo) u.voice = vo; u.rate = 1; u.pitch = i === 3 ? 1.3 : i === 0 ? 0.7 : 1; speechSynthesis.speak(u); } catch (e) {} }, Math.max(ms, 150));
   try { navigator.vibrate && navigator.vibrate(i === 3 ? [80, 60, 80, 60, 200] : 60); } catch (e) {}
   let el = $('#verdict'); if (!el) { el = document.createElement('div'); el.id = 'verdict'; el.setAttribute('aria-live', 'polite'); document.body.appendChild(el); }
   el.className = 'verdict v' + i; el.innerHTML = `${esc(v.word)}<small>${fmt(price)}</small>`;
