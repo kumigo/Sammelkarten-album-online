@@ -178,11 +178,27 @@ label.lbl{font-size:13px;font-weight:600;display:flex;flex-direction:column;gap:
 .dialog form .field{flex:1 1 160px;min-width:0;background:#fff;color:#16244F;border:3px solid #1C2B5A;font-weight:800;font-size:17px}
 .next{position:absolute;right:14px;bottom:8px;appearance:none;border:0;background:none;color:#E3350D;font-size:20px;cursor:pointer;animation:blink 1s steps(2) infinite;padding:4px 8px}
 @keyframes blink{50%{opacity:0}}
+.profbar{position:relative;z-index:2;display:flex;flex-direction:column;align-items:flex-end;gap:8px;padding-top:12px;max-width:640px;width:100%;margin:0 auto}
+.chip{appearance:none;border:3px solid #1C2B5A;background:#FFCB05;color:#1C2B5A;font:800 13px var(--font-body);padding:6px 12px;border-radius:999px;cursor:pointer;box-shadow:0 3px 0 #1C2B5A}
+.profpanel{background:#fff;color:#16244F;border:3px solid #1C2B5A;border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px;width:min(100%,320px);box-sizing:border-box}
+.profpanel .field{background:#fff;color:#16244F;border:2px solid #1C2B5A}
+.profpanel .btn{color:#16244F;background:#fff;border-color:#1C2B5A}
+.profpanel .hint{font-size:12px;color:#56628A}
 .vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 </style>
 </head>
 <body>
 <div id="intro" class="intro" hidden>
+  <div class="profbar">
+    <button class="chip" type="button" id="profEdit" aria-expanded="false">Professor ändern</button>
+    <div class="profpanel" id="profPanel" hidden>
+      <label class="btn small" for="profFile">Bild wählen</label>
+      <input type="file" id="profFile" accept="image/*">
+      <button class="btn small ghost" type="button" id="profReset" hidden>Standardbild</button>
+      <span class="namefield"><input class="field" id="profName" type="text" maxlength="30" placeholder="Name, z. B. Kastanie" autocomplete="off"><button class="btn small" type="button" id="saveProf">OK</button></span>
+      <span class="hint">Bild und Name bleiben nur auf diesem Handy.</span>
+    </div>
+  </div>
   <div class="stage">
     <div class="spot"></div>
     <img class="prof" id="profImg" alt="Professor" hidden>
@@ -269,12 +285,7 @@ label.lbl{font-size:13px;font-weight:600;display:flex;flex-direction:column;gap:
     <label class="lbl" for="ownerName">Dein Name im Titel
       <span class="namefield"><input class="field" id="ownerName" type="text" maxlength="24" placeholder="z. B. Chris" autocomplete="nickname"><button class="btn small" type="button" id="saveName">Übernehmen</button></span>
     </label>
-    <div class="lbl">Professor
-      <span class="btns"><label class="btn small" for="profFile">Eigenes Bild wählen</label><button class="btn small ghost" type="button" id="profReset" hidden>Standard</button><button class="btn small ghost" type="button" id="replayIntro">Begrüßung ansehen</button></span>
-      <input type="file" id="profFile" accept="image/*">
-      <span class="namefield"><input class="field" id="profName" type="text" maxlength="30" placeholder="Name des Professors, z. B. Kastanie" autocomplete="off"><button class="btn small" type="button" id="saveProf">Übernehmen</button></span>
-      <span class="sub">Bild und Name bleiben nur auf deinem Handy und werden nirgends hochgeladen.</span>
-    </div>
+    <div class="btns"><button class="btn small" type="button" id="replayIntro">Begrüßung nochmal ansehen</button></div>
     <div class="line"><span id="dataInfo">Kartendaten werden geladen …</span></div>
     <div class="btns">
       <button class="btn small" type="button" id="exportBtn">Backup speichern</button>
@@ -748,14 +759,15 @@ $('#profFile').addEventListener('change', async e => {
     c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
     await idbSet('prof', c.toDataURL('image/png'));
     await applyProf();
-    $('#storeInfo').innerHTML = '<span class="ok">Professor-Bild gespeichert. Tipp auf „Begrüßung ansehen“.</span>';
-  } catch (err) { $('#storeInfo').innerHTML = '<span class="err">Das Bild konnte nicht gelesen werden.</span>'; }
+  } catch (err) { $('#profPanel .hint').textContent = 'Das Bild konnte nicht gelesen werden.'; }
 });
 $('#profReset').addEventListener('click', async () => { try { await idbSet('prof', null); } catch (e) {} applyProf(); });
 $('#replayIntro').addEventListener('click', () => { window.scrollTo(0, 0); runIntro(); });
 function profName() { try { return localStorage.getItem('sb-prof') || 'Kastanie'; } catch (e) { return 'Kastanie'; } }
 $('#profName').value = profName() === 'Kastanie' ? '' : profName();
-$('#saveProf').addEventListener('click', () => { const v = $('#profName').value.trim().replace(/^prof(essor)?\.?\s+/i, ''); try { v ? localStorage.setItem('sb-prof', v) : localStorage.removeItem('sb-prof'); } catch (e) {} $('#storeInfo').innerHTML = '<span class="ok">Professor heißt jetzt ' + esc(profName()) + '.</span>'; });
+$('#profEdit').addEventListener('click', e => { e.stopPropagation(); const pnl = $('#profPanel'); pnl.hidden = !pnl.hidden; $('#profEdit').setAttribute('aria-expanded', String(!pnl.hidden)); });
+$('#profPanel').addEventListener('click', e => e.stopPropagation());
+$('#saveProf').addEventListener('click', () => { const v = $('#profName').value.trim().replace(/^prof(essor)?\.?\s+/i, ''); try { v ? localStorage.setItem('sb-prof', v) : localStorage.removeItem('sb-prof'); } catch (e) {} $('#profPanel').hidden = true; if (!$('#intro').hidden) runIntro(); });
 applyProf();
 
 /* ---------- Begrüßung durch den Professor (nur beim ersten Öffnen) ---------- */
