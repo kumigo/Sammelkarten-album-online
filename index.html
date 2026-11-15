@@ -1320,7 +1320,7 @@ function renderLive() {
 async function startLive() {
   if (L.on) return;
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { $('#storeInfo').textContent = ''; alertLive('Dieser Browser kann die Kamera nicht dauerhaft öffnen. Nutze „Karte fotografieren“.'); return; }
-  L.on = true; L.log = []; L.prev = null; L.done = null; L.stable = 0; L.status = 'Kamera wird gestartet …'; renderLive();
+  L.on = true; L.log = []; L.prev = null; L.done = null; L.stable = 0; L.lastId = null; L.lastOk = false; L.moved = true; L.failShown = false; L.lastRead = 0; L.status = 'Kamera wird gestartet …'; renderLive();
   $('#live').scrollIntoView({behavior: 'smooth', block: 'start'});
   try {
     L.stream = await navigator.mediaDevices.getUserMedia({video: {facingMode: {ideal: 'environment'}, width: {ideal: 3840}}, audio: false});
@@ -1343,14 +1343,19 @@ function stopLive() {
 async function tickLive() {
   const v = $('#live video'); if (!L.on || L.busy || !v || v.readyState < 2 || !v.videoWidth) return;
   const s = sig(v), motion = sigDiff(s, L.prev); L.prev = s;
-  const forced = L.force;
-  if (forced) { L.force = false; L.stable = 9; L.done = null; }
-  else if (motion > 9) { L.stable = 0; if (L.done) { L.status = 'Bewegung … warte, bis die Karte ruhig liegt.'; renderLive(); } return; }
-  if (++L.stable < 2) return;
-  if (L.done && sigDiff(s, L.done) < 14) return; // gleiche Karte liegt noch da
-  let contrast = 0, m = 0; for (const x of s) m += x; m /= s.length; for (const x of s) contrast += Math.abs(x - m); contrast /= s.length;
-  if (!forced && contrast < 8) { L.done = null; L.status = 'Kein Bild im Rahmen. Leg eine Karte hinein.'; renderLive(); return; }
-  L.busy = true; L.done = s; L.status = 'Lese Karte …'; renderLive();
+  if (motion > 9) L.moved = true;                       // seit dem letzten Lesen hat sich etwas bewegt
+  const forced = L.force; L.force = false;
+  const now = Date.now();
+  if (!forced) {
+    if (motion > 9) { L.status = 'Bewegung … warte, bis die Karte ruhig liegt.'; renderLive(); return; }
+    if (now - (L.lastRead || 0) < 1200) return;          // höchstens etwa jede Sekunde lesen
+    let contrast = 0, m = 0; for (const x of s) m += x; m /= s.length; for (const x of s) contrast += Math.abs(x - m); contrast /= s.length;
+    if (contrast < 5) { L.lastOk = false; L.failShown = false; L.status = 'Kein Bild im Rahmen. Leg eine Karte hinein.'; renderLive(); return; }
+    // Liegt nach einem Treffer noch dieselbe Karte da (nichts bewegt, Bild gleich), nicht erneut lesen
+    if (L.lastOk && !L.moved && L.done && sigDiff(s, L.done) < 14) return;
+  }
+  L.busy = true; L.lastRead = now; const moved = L.moved || forced; L.moved = false; L.done = s;
+  L.status = 'Lese Karte …'; renderLive();
   try {
     const r0 = cropRect(v), c = document.createElement('canvas'), sc = Math.min(1, 2000 / r0.h);
     c.width = Math.round(r0.w * sc); c.height = Math.round(r0.h * sc);
@@ -1360,19 +1365,24 @@ async function tickLive() {
     const thumb = t.toDataURL('image/jpeg', 0.62);
     const r = await identify(c, x => { L.status = x; renderLive(); });
     const best = r.is_card && S.idx ? candidatesFor(r)[0] : null;
-    if (best && L.on) {
+    if (best && L.on && best.id === L.lastId && !moved) {
+      L.lastOk = true; L.status = `Liegt noch: ${r.name_printed || best.base}. Leg die nächste Karte drauf.`;
+    } else if (best && L.on) {
       const variant = 'n', dn = dexOf(best.name), newMon = dn && !dexCaught().has(dn);
       addCard(best, variant, {thumb, r});
       const had = (S.coll.get(`${best.id}-${variant}`) || {}).count || 1;
       const tag = had > 1 ? `<b class="ltag dup">Doppelt · jetzt ${had}×</b>` : newMon ? '<b class="ltag new">Neu im Pokédex!</b>' : '<b class="ltag new">Neu</b>';
       L.log.push({ok: true, id: `${best.id}-${variant}`, thumb, tag, text: `${r.name_printed || best.base}${r.number ? ' · ' + r.number : ''} · ${fmt(priceOf(best.id, variant))}`});
+      L.lastId = best.id; L.lastOk = true; L.failShown = false;
       L.status = `Erkannt: ${r.name_printed || best.base} · ${had > 1 ? 'hattest du schon' : 'neu'}. Nächste Karte!`; L.flash = true; setTimeout(() => { L.flash = false; L.on && renderLive(); }, 900); const pr = priceOf(best.id, variant); if (pr != null) verdict(pr); else beep(true);
     } else if (L.on) {
-      L.log.push({ok: false, thumb, text: 'Nicht erkannt' + (r.read ? `: „${r.read.slice(0, 40)}“` : '') + '. Später über die Suche eintragen.'});
-      L.status = 'Nicht erkannt. Nimm die nächste Karte.'; beep(false);
+      // Nicht erkannt: es wird automatisch weiter versucht. In die Liste nur einmal pro Karte.
+      L.lastOk = false;
+      if (!L.failShown || moved) { L.log.push({ok: false, thumb, text: 'Noch nicht erkannt' + (r.read ? `: „${r.read.slice(0, 40)}“` : '') + '. Ich versuche es weiter.'}); L.failShown = true; beep(false); }
+      L.status = 'Noch nicht erkannt, ich lese weiter … Karte gerade und scharf in den Rahmen legen.';
     }
-  } catch (e) { L.status = 'Fehler beim Lesen. Nimm die nächste Karte.'; }
-  L.busy = false; L.stable = 0; renderLive();
+  } catch (e) { L.status = 'Fehler beim Lesen, ich versuche es weiter.'; }
+  L.busy = false; renderLive();
 }
 $('#liveBtn').addEventListener('click', startLive);
 $('#live').addEventListener('click', e => {
