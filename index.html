@@ -998,10 +998,20 @@ function renderDex() {
   if (S.view !== 'dex') return;
   if (!DEX) { el.innerHTML = '<div class="dexscreen"><span class="sub">Pokédex wird geladen …</span></div>'; return; }
   const caught = dexCaught();
+  const other = [...S.coll].filter(([, e]) => !dexOf(e.name) && !/energy$/i.test(String(splitName(e.name).base || e.name).trim()));
+  const otherCount = other.reduce((n, [, e]) => n + (e.count || 0), 0);
+  const genChips = `<button type="button" data-gen="x" aria-pressed="${S.gen === 'x'}">Trainer${other.length ? ` (${otherCount})` : ''}</button>` + GENS.map((g, i) => `<button type="button" data-gen="${i}" aria-pressed="${(S.gen ?? 0) === i}">Gen ${i + 1}</button>`).join('');
+  const head = `<div class="row"><b>Gefangen: ${caught.size} von ${DEX.length}</b><span class="sub">${(DEX.length ? Math.round(caught.size / DEX.length * 1000) / 10 : 0).toString().replace('.', ',')} %</span></div>
+      <div class="dexbar"><i style="width:${Math.min(100, caught.size / DEX.length * 100)}%"></i></div><div class="gens">${genChips}</div>`;
+  if (S.gen === 'x') {
+    other.sort((x, y) => (rowValue(y[1]) ?? -1) - (rowValue(x[1]) ?? -1));
+    el.innerHTML = `<div class="dexscreen">${head}<span class="sub">Trainer-, Item- und Stadionkarten: ${otherCount} ${otherCount === 1 ? 'Karte' : 'Karten'} · zusammen ${fmt(other.reduce((v, [, e]) => v + (rowValue(e) || 0), 0))}</span></div>
+      <div class="dexgrid">${other.map(([, e]) => `<div class="dexmon got"><span class="nr">${esc(e.setLabel || '')}</span>${e.thumb ? `<img src="${e.thumb}" alt="" style="width:46px;height:64px;object-fit:cover;border-radius:6px">` : ballSvg(true)}<span class="nm">${esc(e.printed || splitName(e.name).base)}${e.variant === 'r' ? ' (Reverse)' : ''}</span><span class="ct">${e.count}× · ${fmt(rowValue(e))}</span></div>`).join('') || '<p class="note">Noch keine Trainerkarten. Fotografiere sie einfach wie jede andere Karte, dann erscheinen sie hier.</p>'}</div>`;
+    return;
+  }
   const [a, b] = GENS[S.gen ?? 0] || [1, DEX.length];
   const inGen = DEX.filter(d => d.n >= a && d.n <= b);
   const genGot = inGen.filter(d => caught.has(d.n)).length;
-  const pct = DEX.length ? Math.round(caught.size / DEX.length * 1000) / 10 : 0;
   const list = S.dexOnly ? inGen.filter(d => caught.has(d.n)) : inGen;
   const sel = S.dexSel && DEX[S.dexSel - 1];
   let detail = '';
@@ -1012,10 +1022,7 @@ function renderDex() {
         : '<span class="sub">Noch nicht gefangen. Fotografiere eine Karte davon oder such sie dir aus.</span>'}
       <div class="row-actions"><button class="btn small" type="button" data-dexsearch="${esc(sel.en)}">Karten von ${esc(sel.de)} suchen</button></div></div>`;
   }
-  el.innerHTML = `<div class="dexscreen">
-      <div class="row"><b>Gefangen: ${caught.size} von ${DEX.length}</b><span class="sub">${pct.toString().replace('.', ',')} %</span></div>
-      <div class="dexbar"><i style="width:${Math.min(100, pct)}%"></i></div>
-      <div class="gens">${GENS.map((g, i) => `<button type="button" data-gen="${i}" aria-pressed="${(S.gen ?? 0) === i}">Gen ${i + 1}</button>`).join('')}</div>
+  el.innerHTML = `<div class="dexscreen">${head}
       <div class="row"><span class="sub">Nr. ${pad3(a)}–${pad3(Math.min(b, DEX.length))} · ${genGot} von ${inGen.length} gefangen</span>
         <label class="sub" style="display:flex;align-items:center;gap:6px"><input type="checkbox" data-dexonly="1" ${S.dexOnly ? 'checked' : ''}> Nur gefangene</label></div>
     </div>${detail}
@@ -1024,7 +1031,7 @@ function renderDex() {
 }
 $('#dexView').addEventListener('click', e => {
   const t = e.target.closest('button'); if (!t) return;
-  if (t.dataset.gen) { S.gen = +t.dataset.gen; S.dexSel = null; renderDex(); }
+  if (t.dataset.gen) { S.gen = t.dataset.gen === 'x' ? 'x' : +t.dataset.gen; S.dexSel = null; renderDex(); }
   else if (t.dataset.dex) { S.dexSel = +t.dataset.dex; renderDex(); $('#dexDetail').scrollIntoView({behavior: 'smooth', block: 'nearest'}); }
   else if (t.dataset.dexclose) { S.dexSel = null; renderDex(); }
   else if (t.dataset.dexsearch) { $('#search').value = t.dataset.dexsearch; startSearch(t.dataset.dexsearch); window.scrollTo({top: 0, behavior: 'smooth'}); }
