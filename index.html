@@ -314,6 +314,15 @@ label.lbl{font-size:13px;font-weight:600;display:flex;flex-direction:column;gap:
 .top .in{padding-bottom:8px!important}
 @media (min-width:1270px){.casekeys{display:none}}
 </style>
+<style>
+.verdict{position:fixed;left:50%;top:42%;transform:translate(-50%,-50%) scale(.6);z-index:50;pointer-events:none;opacity:0;transition:transform .25s cubic-bezier(.3,1.6,.5,1),opacity .2s;font-family:var(--font-logo);font-size:clamp(44px,14vw,96px);letter-spacing:.03em;color:#FFD84D;-webkit-text-stroke:8px #3466AF;paint-order:stroke fill;text-shadow:0 6px 0 #1C3F93;white-space:nowrap;text-align:center}
+.verdict small{display:block;font:800 18px var(--font-body,inherit);-webkit-text-stroke:0;color:#fff;text-shadow:0 2px 4px rgba(0,0,0,.6);margin-top:6px}
+.verdict.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.verdict.v0{color:#B9A27A;-webkit-text-stroke-color:#4A3A22;text-shadow:0 6px 0 #2B210F}
+.verdict.v3{animation:jp .5s ease-in-out 3}
+@keyframes jp{50%{transform:translate(-50%,-50%) scale(1.15) rotate(-4deg)}}
+@media (prefers-reduced-motion:reduce){.verdict,.verdict.v3{transition:opacity .2s;animation:none}}
+</style>
 </head>
 <body>
 <div id="intro" class="intro" hidden>
@@ -722,6 +731,7 @@ async function handlePhoto(file) {
     if (!r.is_card) { scan.state = 'nocard'; renderScan(); return; }
     scan.cands = candidatesFor(r);
     scan.state = 'done';
+    if (scan.cands[0]) verdict(priceOf(scan.cands[0].id, 'n'));
   } catch (e) {
     scan.state = 'error';
     scan.err = 'Die Karte konnte nicht gelesen werden (' + esc(e && e.message || e) + '). Du kannst sie über die Suche finden.';
@@ -1169,7 +1179,7 @@ function renderLive() {
     el.innerHTML = `<div class="listhead"><h2>Serien-Scan</h2><button class="btn small ghost" type="button" data-lstop="1">Beenden</button></div>
       <div class="livebox"><video playsinline muted autoplay></video><div class="guide"></div></div>
       <div class="livestat" id="liveStat"></div><div class="livelist" id="liveList"></div>
-      <p class="note" style="margin:0">Leg das Handy fest über die Karten, z. B. auf eine Halterung. Jede neue Karte, die ruhig im Rahmen liegt, wird erkannt und automatisch eingetragen. Ein hoher Ton heißt erkannt, ein tiefer Ton heißt nicht erkannt.</p>`;
+      <p class="note" style="margin:0">Leg das Handy fest über die Karten, z. B. auf eine Halterung. Jede neue Karte, die ruhig im Rahmen liegt, wird erkannt und automatisch eingetragen. Nach jeder erkannten Karte sagt die App den Wert an: Schmutz, Naja, Joa oder Jackpot. Ein tiefer Ton heißt nicht erkannt.</p>`;
   }
   el.hidden = false;
   $('#liveStat').textContent = L.status;
@@ -1221,7 +1231,7 @@ async function tickLive() {
       const variant = 'n'; addCard(best, variant, {thumb, r});
       const had = (S.coll.get(`${best.id}-${variant}`) || {}).count || 1;
       L.log.push({ok: true, id: `${best.id}-${variant}`, thumb, text: `${r.name_printed || best.base}${r.number ? ' · ' + r.number : ''} · ${fmt(priceOf(best.id, variant))}${had > 1 ? ` (jetzt ${had}×)` : ''}`});
-      L.status = `Erkannt: ${r.name_printed || best.base}. Nächste Karte!`; L.flash = true; setTimeout(() => { L.flash = false; L.on && renderLive(); }, 900); beep(true);
+      L.status = `Erkannt: ${r.name_printed || best.base}. Nächste Karte!`; L.flash = true; setTimeout(() => { L.flash = false; L.on && renderLive(); }, 900); const pr = priceOf(best.id, variant); if (pr != null) verdict(pr); else beep(true);
     } else if (L.on) {
       L.log.push({ok: false, thumb, text: 'Nicht erkannt' + (r.read ? `: „${r.read.slice(0, 40)}“` : '') + '. Später über die Suche eintragen.'});
       L.status = 'Nicht erkannt. Nimm die nächste Karte.'; beep(false);
@@ -1263,6 +1273,42 @@ for (const side of document.querySelectorAll('.dexside, .casekeys')) side.addEve
     goGen(order[(i + (k === 'right' ? 1 : -1) + order.length) % order.length]);
   }
 });
+
+
+/* ---------- Wert-Ansage nach dem Erkennen ---------- */
+let AC = null;
+function audio() { try { AC = AC || new (window.AudioContext || window.webkitAudioContext)(); if (AC.state === 'suspended') AC.resume(); } catch (e) {} return AC; }
+document.addEventListener('pointerdown', function unlock() {
+  audio(); try { const u = new SpeechSynthesisUtterance(' '); u.volume = 0; speechSynthesis.speak(u); } catch (e) {}
+  document.removeEventListener('pointerdown', unlock);
+}, {once: true});
+function tones(seq, type = 'square') {
+  const a = audio(); if (!a) return; let t = a.currentTime + 0.02;
+  for (const [f, d] of seq) {
+    if (f) { const o = a.createOscillator(), g = a.createGain(); o.type = type; o.frequency.setValueAtTime(f, t);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.13, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + d * 0.95);
+      o.connect(g).connect(a.destination); o.start(t); o.stop(t + d); }
+    t += d;
+  }
+  return (t - a.currentTime) * 1000;
+}
+const VERDICTS = [
+  {max: 5, word: 'Schmutz', say: 'Schmutz.', seq: [[392, .18], [370, .18], [349, .18], [262, .5]], type: 'sawtooth'},
+  {max: 10, word: 'Naja', say: 'Naja.', seq: [[523, .16], [440, .3]]},
+  {max: 20, word: 'Joa', say: 'Joa!', seq: [[523, .12], [659, .12], [784, .3]]},
+  {max: Infinity, word: 'Jackpot!', say: 'Jackpot!', seq: [[523, .1], [659, .1], [784, .1], [1047, .2], [0, .05], [784, .1], [1047, .45]]},
+];
+function verdict(price) {
+  if (price == null || isNaN(price)) return;
+  const i = VERDICTS.findIndex(v => price < v.max), v = VERDICTS[i];
+  const ms = tones(v.seq, v.type) || 0;
+  setTimeout(() => { try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(v.say); u.lang = 'de-DE'; u.rate = 1; u.pitch = i === 3 ? 1.3 : i === 0 ? 0.7 : 1; speechSynthesis.speak(u); } catch (e) {} }, ms);
+  try { navigator.vibrate && navigator.vibrate(i === 3 ? [80, 60, 80, 60, 200] : 60); } catch (e) {}
+  let el = $('#verdict'); if (!el) { el = document.createElement('div'); el.id = 'verdict'; el.setAttribute('aria-live', 'polite'); document.body.appendChild(el); }
+  el.className = 'verdict v' + i; el.innerHTML = `${esc(v.word)}<small>${fmt(price)}</small>`;
+  requestAnimationFrame(() => el.classList.add('show'));
+  clearTimeout(verdict.t); verdict.t = setTimeout(() => el.classList.remove('show'), i === 3 ? 2200 : 1500);
+}
 
 /* ---------- Start ---------- */
 { let v = 'dex'; try { v = localStorage.getItem('sb-view') || 'dex'; } catch (e) {} setView(v); }
