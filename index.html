@@ -175,7 +175,7 @@ body{background:repeating-linear-gradient(135deg,rgba(255,255,255,.035) 0 2px,tr
 .wrap{position:relative;background:var(--screen);border:12px solid var(--bezel);border-top-width:30px;border-bottom-width:34px;border-radius:22px 22px 22px 56px;box-shadow:inset 0 0 0 3px rgba(0,0,0,.18),0 0 0 3px #5E0A14,0 8px 0 3px #5E0A14;margin-top:18px!important;margin-bottom:28px!important;padding-block:4px 20px!important}
 .wrap::before{content:"";position:absolute;top:-20px;left:50%;transform:translateX(-50%);width:42px;height:10px;background:radial-gradient(circle,#E3202F 0 4px,transparent 5px) 0 0/21px 10px repeat-x}
 .wrap::after{content:"";position:absolute;bottom:-26px;right:18px;width:64px;height:18px;background:repeating-linear-gradient(180deg,#5E0A14 0 3px,transparent 3px 7px);opacity:.55;border-radius:3px}
-.wrap .note,.wrap .listhead,.wrap>.foot,.wrap .binder:empty{background:var(--glass);border-radius:16px;padding:10px 14px}
+.wrap .note,.wrap .listhead,.scrollin>.foot,.wrap .binder:empty{background:var(--glass);border-radius:16px;padding:10px 14px}
 .wrap .listhead{margin-top:18px}
 @media (min-width:680px){.wrap{margin-left:auto!important;margin-right:auto!important}}
 @media (max-width:679px){.wrap{border-left-width:8px;border-right-width:8px}.actions{grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) minmax(0,1fr)!important}.actions .btn{min-width:0;padding-inline:8px}.actions .btn.primary{font-size:17px}}
@@ -357,7 +357,7 @@ label.lbl{font-size:13px;font-weight:600;display:flex;flex-direction:column;gap:
 </style>
 <style>
 /* Eigene Ansichten: Serien-Scan bzw. Tausch stehen allein im Bildschirm */
-body[data-mode] .wrap > section:not(#live):not(#trade):not(#scan):not(#topSec), body[data-mode] #menu, body[data-mode="live"] #topSec{display:none!important}
+body[data-mode] .scrollin > section:not(#live):not(#trade):not(#scan):not(#topSec), body[data-mode] #menu, body[data-mode="live"] #topSec{display:none!important}
 body[data-mode="trade"] #topSec{margin-top:4px}
 body[data-mode] .top .meta .sub, body[data-mode] .top .worth .sub{display:none}
 body[data-mode] .top .in{padding-block:8px 4px!important}
@@ -409,6 +409,17 @@ body[data-mode="trade"] .titem{font-size:13px}
 @media (max-width:679px){
   .wrap{margin-left:3px!important;margin-right:3px!important;border-left-width:6px!important;border-right-width:6px!important;padding-left:10px!important;padding-right:10px!important;border-radius:18px 18px 18px 40px!important}
 }
+</style>
+<style>
+/* Feste App-Ansicht: nichts verschiebt sich, nur der Bildschirminhalt scrollt */
+html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+body{position:fixed;inset:0;display:flex;flex-direction:column}
+header.top{position:relative!important;top:auto!important;flex:none}
+main.wrap{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;overflow:visible;width:auto;box-sizing:border-box;align-self:stretch}
+@media (min-width:680px){main.wrap{width:calc(100% - 32px);max-width:700px;align-self:center}}
+.scrollin{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;display:flex;flex-direction:column;gap:18px;padding-bottom:10px;scrollbar-width:none}
+.scrollin::-webkit-scrollbar{display:none}
+body[data-mode] .scrollin{gap:10px}
 </style>
 </head>
 <body>
@@ -480,6 +491,7 @@ body[data-mode="trade"] .titem{font-size:13px}
 
 <main class="wrap">
   <button type="button" class="menudots" id="menuBtn" aria-label="Menü: Backup und Einstellungen" aria-expanded="false"><i></i><i></i></button>
+  <div class="scrollin" id="scroller">
   <footer class="foot" id="menu" hidden>
     <div class="line"><span id="dataInfo">Kartendaten werden geladen …</span></div>
     <div class="btns">
@@ -537,6 +549,7 @@ body[data-mode="trade"] .titem{font-size:13px}
     </div>
   </section>
 
+  </div>
 </main>
 <aside class="dexside dl" aria-label="Pokédex-Tasten links">
   <button type="button" class="kb-round" data-k="foto" title="Karte fotografieren"><span>Foto</span></button>
@@ -1126,7 +1139,7 @@ $('#trade').addEventListener('click', e => {
   const T = S.trade; if (!T) return;
   if (t.dataset.tclose) { S.trade = null; renderTrade(); }
   else if (t.dataset.tphoto) { T.side = t.dataset.tphoto; renderTrade(); $('#cam').click(); }
-  else if (t.dataset.tsearch) { T.side = t.dataset.tsearch; renderTrade(); window.scrollTo({top: 0, behavior: 'smooth'}); setTimeout(() => $('#search').focus(), 300); }
+  else if (t.dataset.tsearch) { T.side = t.dataset.tsearch; renderTrade(); $('#scroller').scrollTo({top: 0, behavior: 'smooth'}); setTimeout(() => $('#search').focus(), 300); }
   else if (t.dataset.trm) { const [k, i] = t.dataset.trm.split(':'); T[k].splice(+i, 1); T.confirm = false; renderTrade(); }
   else if (t.dataset.tapply === '1') { T.confirm = true; renderTrade(); }
   else if (t.dataset.tapply === '0') { T.confirm = false; renderTrade(); }
@@ -1341,7 +1354,7 @@ $('#dexView').addEventListener('click', e => {
   if (t.dataset.gen) { S.gen = t.dataset.gen === 'x' ? 'x' : +t.dataset.gen; S.dexSel = null; renderDex(); syncSide(); }
   else if (t.dataset.dex) { S.dexSel = +t.dataset.dex; renderDex(); $('#dexDetail').scrollIntoView({behavior: 'smooth', block: 'nearest'}); }
   else if (t.dataset.dexclose) { S.dexSel = null; renderDex(); }
-  else if (t.dataset.dexsearch) { $('#search').value = t.dataset.dexsearch; startSearch(t.dataset.dexsearch); window.scrollTo({top: 0, behavior: 'smooth'}); }
+  else if (t.dataset.dexsearch) { $('#search').value = t.dataset.dexsearch; startSearch(t.dataset.dexsearch); $('#scroller').scrollTo({top: 0, behavior: 'smooth'}); }
 });
 $('#dexView').addEventListener('change', e => { if (e.target.dataset.dexonly) { S.dexOnly = e.target.checked; renderDex(); } });
 for (const b of document.querySelectorAll('.dextabs button')) b.addEventListener('click', () => setView(b.dataset.view));
@@ -1486,7 +1499,7 @@ for (const side of document.querySelectorAll('.dexside, .casekeys')) side.addEve
   else if (k === 'trade') openTrade();
   else if (k === 'backup') exportBackup();
   else if (k === 'dex' || k === 'cards') { setView(k); syncSide(); $('.dextabs').scrollIntoView({behavior: 'smooth', block: 'start'}); }
-  else if (k === 'up' || k === 'down') window.scrollBy({top: (k === 'up' ? -1 : 1) * window.innerHeight * 0.6, behavior: 'smooth'});
+  else if (k === 'up' || k === 'down') $('#scroller').scrollBy({top: (k === 'up' ? -1 : 1) * $('#scroller').clientHeight * 0.6, behavior: 'smooth'});
   else if (k === 'left' || k === 'right') {
     const order = ['x', 0, 1, 2, 3, 4, 5, 6, 7, 8], i = order.indexOf(S.view === 'dex' ? (S.gen ?? 0) : 0);
     goGen(order[(i + (k === 'right' ? 1 : -1) + order.length) % order.length]);
@@ -1587,7 +1600,7 @@ function setMode() {
   if ((document.body.dataset.mode || '') === m) return;
   if (m) document.body.dataset.mode = m; else delete document.body.dataset.mode;
   const h = document.querySelector('header.top'); if (h) document.documentElement.style.setProperty('--hdr', h.offsetHeight + 'px');
-  window.scrollTo({top: 0});
+  $('#scroller').scrollTo({top: 0});
 }
 window.addEventListener('resize', () => { const h = document.querySelector('header.top'); if (h) document.documentElement.style.setProperty('--hdr', h.offsetHeight + 'px'); });
 
