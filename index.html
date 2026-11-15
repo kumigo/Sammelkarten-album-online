@@ -316,7 +316,7 @@ label.lbl{font-size:13px;font-weight:600;display:flex;flex-direction:column;gap:
 </style>
 <style>
 .verdict{position:fixed;left:50%;top:42%;transform:translate(-50%,-50%) scale(.6);z-index:50;pointer-events:none;opacity:0;transition:transform .25s cubic-bezier(.3,1.6,.5,1),opacity .2s;font-family:var(--font-logo);font-size:clamp(44px,14vw,96px);letter-spacing:.03em;color:#FFD84D;-webkit-text-stroke:8px #3466AF;paint-order:stroke fill;text-shadow:0 6px 0 #1C3F93;white-space:nowrap;text-align:center}
-.verdict small{display:block;font:800 18px var(--font-body,inherit);-webkit-text-stroke:0;color:#fff;text-shadow:0 2px 4px rgba(0,0,0,.6);margin-top:6px}
+.verdict small{display:table;margin:8px auto 0;font:800 18px var(--font-body,inherit);-webkit-text-stroke:0;color:#fff;text-shadow:none;background:rgba(10,15,40,.82);padding:4px 12px;border-radius:99px}
 .verdict.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
 .verdict.v0{color:#B9A27A;-webkit-text-stroke-color:#4A3A22;text-shadow:0 6px 0 #2B210F}
 .verdict.v3{animation:jp .5s ease-in-out 3}
@@ -463,6 +463,7 @@ label.lbl{font-size:13px;font-weight:600;display:flex;flex-direction:column;gap:
     <div class="line"><span id="dataInfo">Kartendaten werden geladen …</span></div>
     <div class="btns">
       <button class="btn small" type="button" id="exportBtn">Backup speichern</button>
+      <button class="btn small" type="button" id="soundTest">Ton testen</button>
       <label class="btn small" for="importFile">Backup laden</label>
       <input type="file" id="importFile" accept="application/json,.json">
     </div>
@@ -1003,6 +1004,8 @@ let st; $('#search').addEventListener('input', e => { clearTimeout(st); st = set
 $('#filter').addEventListener('input', e => { S.filter = e.target.value; render(); });
 $('#sort').addEventListener('change', e => { S.sort = e.target.value; render(); });
 $('#exportBtn').addEventListener('click', exportBackup);
+$('#soundTest').addEventListener('click', () => { const n = (soundTestN = (soundTestN + 1) % 4); verdict([2, 7, 15, 50][n]); });
+let soundTestN = 3;
 $('#importFile').addEventListener('change', e => { const f = e.target.files[0]; e.target.value = ''; if (f) importBackup(f); });
 document.addEventListener('click', e => {
   const t = e.target.closest('button'); if (!t) return;
@@ -1227,7 +1230,7 @@ function cropRect(v) {
 }
 function beep(ok) {
   try { navigator.vibrate && navigator.vibrate(ok ? 70 : [40, 60, 40]); } catch (e) {}
-  try { const a = beep.a || (beep.a = new (window.AudioContext || window.webkitAudioContext)()); const o = a.createOscillator(), g = a.createGain();
+  try { const a = audio(); const o = a.createOscillator(), g = a.createGain();
     o.frequency.value = ok ? 1320 : 330; g.gain.setValueAtTime(.12, a.currentTime); g.gain.exponentialRampToValueAtTime(.001, a.currentTime + .18);
     o.connect(g).connect(a.destination); o.start(); o.stop(a.currentTime + .2); } catch (e) {}
 }
@@ -1336,11 +1339,22 @@ for (const side of document.querySelectorAll('.dexside, .casekeys')) side.addEve
 
 /* ---------- Wert-Ansage nach dem Erkennen ---------- */
 let AC = null;
-function audio() { try { AC = AC || new (window.AudioContext || window.webkitAudioContext)(); if (AC.state === 'suspended') AC.resume(); } catch (e) {} return AC; }
-document.addEventListener('pointerdown', function unlock() {
-  audio(); try { const u = new SpeechSynthesisUtterance(' '); u.volume = 0; speechSynthesis.speak(u); } catch (e) {}
-  document.removeEventListener('pointerdown', unlock);
-}, {once: true});
+function audio() {
+  try {
+    if (!AC || AC.state === 'closed') AC = new (window.AudioContext || window.webkitAudioContext)();
+    if (AC.state !== 'running') AC.resume().catch(() => {});
+  } catch (e) {}
+  return AC;
+}
+// Handys geben Ton nur frei, wenn er während eines echten Tippens (nicht nur beim Berühren) gestartet wird.
+let speechPrimed = false;
+function unlockAudio() {
+  const a = audio(); if (!a) return;
+  try { const b = a.createBuffer(1, 1, 22050), src = a.createBufferSource(); src.buffer = b; src.connect(a.destination); src.start(0); } catch (e) {}
+  if (!speechPrimed && 'speechSynthesis' in window) { speechPrimed = true; try { const u = new SpeechSynthesisUtterance(' '); u.volume = 0; speechSynthesis.speak(u); } catch (e) {} }
+}
+for (const ev of ['click', 'touchend', 'keydown']) document.addEventListener(ev, unlockAudio, {capture: true, passive: true});
+document.addEventListener('visibilitychange', () => { if (!document.hidden) audio(); });
 function tones(seq, type = 'square') {
   const a = audio(); if (!a) return; let t = a.currentTime + 0.02;
   for (const [f, d] of seq) {
@@ -1361,7 +1375,7 @@ function verdict(price) {
   if (price == null || isNaN(price)) return;
   const i = VERDICTS.findIndex(v => price < v.max), v = VERDICTS[i];
   const ms = tones(v.seq, v.type) || 0;
-  setTimeout(() => { try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(v.say); u.lang = 'de-DE'; u.rate = 1; u.pitch = i === 3 ? 1.3 : i === 0 ? 0.7 : 1; speechSynthesis.speak(u); } catch (e) {} }, ms);
+  setTimeout(() => { try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(v.say); u.lang = 'de-DE'; const vo = speechSynthesis.getVoices().find(x => /^de/i.test(x.lang)); if (vo) u.voice = vo; u.rate = 1; u.pitch = i === 3 ? 1.3 : i === 0 ? 0.7 : 1; speechSynthesis.speak(u); } catch (e) {} }, ms);
   try { navigator.vibrate && navigator.vibrate(i === 3 ? [80, 60, 80, 60, 200] : 60); } catch (e) {}
   let el = $('#verdict'); if (!el) { el = document.createElement('div'); el.id = 'verdict'; el.setAttribute('aria-live', 'polite'); document.body.appendChild(el); }
   el.className = 'verdict v' + i; el.innerHTML = `${esc(v.word)}<small>${fmt(price)}</small>`;
