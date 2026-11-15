@@ -254,6 +254,20 @@ label.lbl{font-size:13px;font-weight:600;display:flex;flex-direction:column;gap:
 .dexdetail ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:4px}
 .dexdetail li{display:flex;justify-content:space-between;gap:10px;font-size:14px}
 </style>
+<style>
+.live-btn{width:100%;margin-top:12px;box-shadow:0 5px 0 var(--line)}
+.livebox{position:relative;border-radius:16px;overflow:hidden;background:#000;aspect-ratio:3/4;max-height:62vh;margin:0 auto;width:100%}
+.livebox video{width:100%;height:100%;object-fit:cover;display:block}
+.livebox .guide{position:absolute;left:50%;top:50%;height:86%;aspect-ratio:63/88;transform:translate(-50%,-50%);border:3px dashed rgba(255,255,255,.85);border-radius:14px;box-shadow:0 0 0 999px rgba(0,0,0,.35);transition:border-color .2s}
+.livebox .guide.busy{border-color:#FFD84D;border-style:solid}
+.livebox .guide.ok{border-color:#5BD38E;border-style:solid}
+.livestat{font-weight:800;text-align:center}
+.livelist{display:flex;flex-direction:column;gap:6px;max-height:240px;overflow:auto}
+.livelist .li{display:flex;align-items:center;gap:10px;background:var(--sunk);border-radius:12px;padding:6px 8px}
+.livelist img{width:30px;height:42px;object-fit:cover;border-radius:4px;flex:none}
+.livelist .li span{flex:1;min-width:0;font-size:14px}
+.livelist .li.bad{opacity:.7}
+</style>
 </head>
 <body>
 <div id="intro" class="intro" hidden>
@@ -323,6 +337,7 @@ label.lbl{font-size:13px;font-weight:600;display:flex;flex-direction:column;gap:
       <label class="btn" for="gal">Galerie</label>
       <button class="btn trade-btn" type="button" id="tradeBtn">Tausch</button>
     </div>
+    <button class="btn live-btn" type="button" id="liveBtn">Serien-Scan starten</button>
     <input type="file" id="cam" accept="image/*" capture="environment">
     <input type="file" id="gal" accept="image/*">
     <div style="margin-top:10px">
@@ -332,6 +347,8 @@ label.lbl{font-size:13px;font-weight:600;display:flex;flex-direction:column;gap:
   </section>
 
   <section class="panel" id="scan" hidden aria-live="polite"></section>
+
+  <section class="panel" id="live" hidden></section>
 
   <section class="panel" id="trade" hidden aria-live="polite"></section>
 
@@ -1038,6 +1055,106 @@ $('#dexView').addEventListener('click', e => {
 });
 $('#dexView').addEventListener('change', e => { if (e.target.dataset.dexonly) { S.dexOnly = e.target.checked; renderDex(); } });
 for (const b of document.querySelectorAll('.dextabs button')) b.addEventListener('click', () => setView(b.dataset.view));
+
+
+/* ---------- Serien-Scan (Kamera läuft, Karten nacheinander) ---------- */
+const L = {on: false, stream: null, timer: 0, prev: null, done: null, stable: 0, busy: false, log: [], status: ''};
+function sig(video) {
+  const c = sig.c || (sig.c = document.createElement('canvas')); c.width = 24; c.height = 32;
+  const g = c.getContext('2d', {willReadFrequently: true}); const r = cropRect(video);
+  g.drawImage(video, r.x, r.y, r.w, r.h, 0, 0, 24, 32);
+  const d = g.getImageData(0, 0, 24, 32).data, out = new Float32Array(768);
+  for (let i = 0; i < 768; i++) out[i] = (d[i * 4] + d[i * 4 + 1] + d[i * 4 + 2]) / 3;
+  return out;
+}
+const sigDiff = (a, b) => { if (!a || !b) return 255; let s = 0; for (let i = 0; i < a.length; i++) s += Math.abs(a[i] - b[i]); return s / a.length; };
+function cropRect(v) {
+  // gleicher Ausschnitt wie der gestrichelte Rahmen: 86 % der sichtbaren Höhe, Kartenformat 63:88
+  const W = v.videoWidth, H = v.videoHeight, boxAR = 3 / 4;
+  let vw = W, vh = H; if (W / H > boxAR) vw = H * boxAR; else vh = W / boxAR;
+  const h = vh * 0.86, w = h * 63 / 88;
+  return {x: (W - w) / 2, y: (H - h) / 2, w, h};
+}
+function beep(ok) {
+  try { navigator.vibrate && navigator.vibrate(ok ? 70 : [40, 60, 40]); } catch (e) {}
+  try { const a = beep.a || (beep.a = new (window.AudioContext || window.webkitAudioContext)()); const o = a.createOscillator(), g = a.createGain();
+    o.frequency.value = ok ? 1320 : 330; g.gain.setValueAtTime(.12, a.currentTime); g.gain.exponentialRampToValueAtTime(.001, a.currentTime + .18);
+    o.connect(g).connect(a.destination); o.start(); o.stop(a.currentTime + .2); } catch (e) {}
+}
+function renderLive() {
+  const el = $('#live');
+  if (!L.on) { el.hidden = true; el.innerHTML = ''; return; }
+  if (!el.innerHTML) {
+    el.innerHTML = `<div class="listhead"><h2>Serien-Scan</h2><button class="btn small ghost" type="button" data-lstop="1">Beenden</button></div>
+      <div class="livebox"><video playsinline muted autoplay></video><div class="guide"></div></div>
+      <div class="livestat" id="liveStat"></div><div class="livelist" id="liveList"></div>
+      <p class="note" style="margin:0">Leg das Handy fest über die Karten, z. B. auf eine Halterung. Jede neue Karte, die ruhig im Rahmen liegt, wird erkannt und automatisch eingetragen. Ein hoher Ton heißt erkannt, ein tiefer Ton heißt nicht erkannt.</p>`;
+  }
+  el.hidden = false;
+  $('#liveStat').textContent = L.status;
+  const g = el.querySelector('.guide'); g.className = 'guide' + (L.busy ? ' busy' : L.flash ? ' ok' : '');
+  $('#liveList').innerHTML = L.log.slice().reverse().map((x, i) => `<div class="li${x.ok ? '' : ' bad'}">${x.thumb ? `<img src="${x.thumb}" alt="">` : ''}<span>${esc(x.text)}</span>${x.ok ? `<button class="btn small ghost" type="button" data-lundo="${L.log.length - 1 - i}">Rückgängig</button>` : ''}</div>`).join('');
+}
+async function startLive() {
+  if (L.on) return;
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { $('#storeInfo').textContent = ''; alertLive('Dieser Browser kann die Kamera nicht dauerhaft öffnen. Nutze „Karte fotografieren“.'); return; }
+  L.on = true; L.log = []; L.prev = null; L.done = null; L.stable = 0; L.status = 'Kamera wird gestartet …'; renderLive();
+  $('#live').scrollIntoView({behavior: 'smooth', block: 'start'});
+  try {
+    L.stream = await navigator.mediaDevices.getUserMedia({video: {facingMode: {ideal: 'environment'}, width: {ideal: 1920}}, audio: false});
+    const v = $('#live video'); v.srcObject = L.stream; await v.play();
+    try { const t = L.stream.getVideoTracks()[0], c = t.getCapabilities ? t.getCapabilities() : {}; if (c.focusMode && c.focusMode.includes('continuous')) await t.applyConstraints({advanced: [{focusMode: 'continuous'}]}); } catch (e) {}
+    if (!NAMES) await loadNames();
+    getWorker().catch(() => {});
+    L.status = 'Bereit. Leg die erste Karte in den Rahmen.'; renderLive();
+    L.timer = setInterval(tickLive, 350);
+  } catch (e) {
+    stopLive(); alertLive('Die Kamera konnte nicht geöffnet werden. Erlaube den Kamerazugriff für diese Seite und versuch es noch mal.');
+  }
+}
+function alertLive(t) { $('#storeInfo').innerHTML = `<span class="err">${esc(t)}</span>`; $('#storeInfo').scrollIntoView({behavior: 'smooth', block: 'center'}); }
+function stopLive() {
+  clearInterval(L.timer); L.timer = 0;
+  if (L.stream) for (const t of L.stream.getTracks()) t.stop();
+  L.stream = null; L.on = false; L.busy = false; renderLive();
+}
+async function tickLive() {
+  const v = $('#live video'); if (!L.on || L.busy || !v || v.readyState < 2 || !v.videoWidth) return;
+  const s = sig(v), motion = sigDiff(s, L.prev); L.prev = s;
+  if (motion > 6) { L.stable = 0; if (L.done) { L.status = 'Bewegung … warte, bis die Karte ruhig liegt.'; renderLive(); } return; }
+  if (++L.stable < 3) return;
+  if (L.done && sigDiff(s, L.done) < 14) return; // gleiche Karte liegt noch da
+  let contrast = 0, m = 0; for (const x of s) m += x; m /= s.length; for (const x of s) contrast += Math.abs(x - m); contrast /= s.length;
+  if (contrast < 8) { L.done = null; L.status = 'Kein Bild im Rahmen. Leg eine Karte hinein.'; renderLive(); return; }
+  L.busy = true; L.done = s; L.status = 'Lese Karte …'; renderLive();
+  try {
+    const r0 = cropRect(v), c = document.createElement('canvas'), sc = Math.min(1, 1400 / r0.h);
+    c.width = Math.round(r0.w * sc); c.height = Math.round(r0.h * sc);
+    c.getContext('2d').drawImage(v, r0.x, r0.y, r0.w, r0.h, 0, 0, c.width, c.height);
+    c.naturalWidth = c.width; c.naturalHeight = c.height;
+    const t = document.createElement('canvas'); t.width = 115; t.height = 160; t.getContext('2d').drawImage(c, 0, 0, 115, 160);
+    const thumb = t.toDataURL('image/jpeg', 0.62);
+    const r = await identify(c, x => { L.status = x; renderLive(); });
+    const best = r.is_card && S.idx ? candidatesFor(r)[0] : null;
+    if (best && L.on) {
+      const variant = 'n'; addCard(best, variant, {thumb, r});
+      const had = (S.coll.get(`${best.id}-${variant}`) || {}).count || 1;
+      L.log.push({ok: true, id: `${best.id}-${variant}`, thumb, text: `${r.name_printed || best.base}${r.number ? ' · ' + r.number : ''} · ${fmt(priceOf(best.id, variant))}${had > 1 ? ` (jetzt ${had}×)` : ''}`});
+      L.status = `Erkannt: ${r.name_printed || best.base}. Nächste Karte!`; L.flash = true; setTimeout(() => { L.flash = false; L.on && renderLive(); }, 900); beep(true);
+    } else if (L.on) {
+      L.log.push({ok: false, thumb, text: 'Nicht erkannt' + (r.read ? `: „${r.read.slice(0, 40)}“` : '') + '. Später über die Suche eintragen.'});
+      L.status = 'Nicht erkannt. Nimm die nächste Karte.'; beep(false);
+    }
+  } catch (e) { L.status = 'Fehler beim Lesen. Nimm die nächste Karte.'; }
+  L.busy = false; L.stable = 0; renderLive();
+}
+$('#liveBtn').addEventListener('click', startLive);
+$('#live').addEventListener('click', e => {
+  const t = e.target.closest('button'); if (!t) return;
+  if (t.dataset.lstop) stopLive();
+  else if (t.dataset.lundo) { const x = L.log[+t.dataset.lundo]; if (x && x.ok) { const ex = S.coll.get(x.id); if (ex) setCount(x.id, (ex.count || 1) - 1); x.ok = false; x.text = 'Zurückgenommen: ' + x.text; renderLive(); } }
+});
+document.addEventListener('visibilitychange', () => { if (document.hidden && L.on) stopLive(); });
 
 /* ---------- Start ---------- */
 { let v = 'dex'; try { v = localStorage.getItem('sb-view') || 'dex'; } catch (e) {} setView(v); }
