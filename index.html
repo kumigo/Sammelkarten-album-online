@@ -929,7 +929,10 @@ function renderTrade() {
   el.hidden = false;
   const side = (key, title) => {
     const list = T[key], v = tradeValue(list);
-    const items = list.map((t, i) => `<div class="titem">${t.thumb ? `<img src="${t.thumb}" alt="">` : '<span class="ph"></span>'}<span style="min-width:0">${esc(t.printed)}${t.variant === 'r' ? ' <span class="sub">(Reverse)</span>' : ''}</span><b>${fmt(priceOf(t.id, t.variant))}</b><button class="x" type="button" data-trm="${key}:${i}" aria-label="Entfernen">×</button></div>`).join('') || '<span class="sub">Noch keine Karte.</span>';
+    const used = new Map();
+    const items = list.map((t, i) => { const oid = key === 'give' ? findOwned(t, used) : null; if (oid) used.set(oid, (used.get(oid) || 0) + 1);
+      const tag = key === 'give' ? (oid ? '<span class="sub" style="color:var(--good)"> · im Bestand</span>' : '<span class="sub" style="color:var(--warn)"> · nicht im Bestand</span>') : '';
+      return `<div class="titem">${t.thumb ? `<img src="${t.thumb}" alt="">` : '<span class="ph"></span>'}<span style="min-width:0">${esc(t.printed)}${t.variant === 'r' ? ' <span class="sub">(Reverse)</span>' : ''}${tag}</span><b>${fmt(priceOf(t.id, t.variant))}</b><button class="x" type="button" data-trm="${key}:${i}" aria-label="Entfernen">×</button></div>`; }).join('') || '<span class="sub">Noch keine Karte.</span>';
     const own = key === 'give' && S.coll.size ? `<select class="field" data-tcoll="1" aria-label="Aus meiner Sammlung"><option value="">Aus meiner Sammlung wählen …</option>${[...S.coll].map(([id, e]) => `<option value="${esc(id)}">${esc(e.printed || e.name)}${e.variant === 'r' ? ' (Reverse)' : ''} · ${fmt(priceOf(e.idProduct, e.variant))}</option>`).join('')}</select>` : '';
     return `<div class="tside ${key}${T.side === key ? ' active' : ''}"><h3>${title}</h3>${items}
       <div class="row-actions"><button class="btn small" type="button" data-tphoto="${key}">Fotografieren</button><button class="btn small" type="button" data-tsearch="${key}">Suchen</button></div>${own}
@@ -949,16 +952,29 @@ function renderTrade() {
   el.innerHTML = `<div class="listhead"><h2>Tausch</h2><button class="btn small ghost" type="button" data-tclose="1">Schließen</button></div>
     <div class="tsides">${side('give', 'Ich gebe')}${side('get', 'Ich bekomme')}</div>${res}${apply}`;
 }
+// Findet die passende Karte in der Sammlung: genau diese Version, sonst dieselbe Karte in anderer Variante oder aus anderem Druck.
+function findOwned(t, used) {
+  const left = id => { const e = S.coll.get(id); return e && (e.count || 0) - (used.get(id) || 0) > 0; };
+  const tries = [t.collId, `${t.id}-${t.variant}`, `${t.id}-${t.variant === 'r' ? 'n' : 'r'}`];
+  for (const id of tries) if (id && left(id)) return id;
+  const nk = key(t.name), bk = key(splitName(t.name || '').base || t.printed);
+  for (const [id, e] of S.coll) if (left(id) && key(e.name) === nk) return id;
+  for (const [id, e] of S.coll) if (left(id) && (key(splitName(e.name).base) === bk || key(e.printed) === key(t.printed))) return id;
+  return null;
+}
 function applyTrade() {
-  const T = S.trade;
-  for (const t of T.give) {
-    const id = t.collId || `${t.id}-${t.variant}`; const ex = S.coll.get(id);
-    if (ex) { if ((ex.count || 0) <= 1) S.coll.delete(id); else S.coll.set(id, {...ex, count: ex.count - 1, updatedAt: Date.now()}); }
+  const T = S.trade, used = new Map(), missing = [];
+  for (const t of T.give) { const id = findOwned(t, used); if (id) used.set(id, (used.get(id) || 0) + 1); else missing.push(t.printed); }
+  for (const [id, n] of used) {
+    const ex = S.coll.get(id), c = (ex.count || 0) - n;
+    if (c <= 0) S.coll.delete(id); else S.coll.set(id, {...ex, count: c, updatedAt: Date.now()});
   }
   saveColl();
   for (const t of T.get) { const it = S.idx && S.idx.byId.get(t.id); if (it) addCard(it, t.variant, {thumb: t.thumb, r: {name_printed: t.printed}}); }
   S.trade = null; renderTrade(); render();
-  $('#storeInfo').innerHTML = '<span class="ok">Tausch übernommen. Deine Sammlung ist aktualisiert.</span>';
+  const gone = [...used.values()].reduce((a, b) => a + b, 0);
+  $('#storeInfo').innerHTML = `<span class="ok">Tausch übernommen: ${gone} ${gone === 1 ? 'Karte' : 'Karten'} aus deinem Bestand entfernt, ${T.get.length} dazugekommen.</span>` + (missing.length ? `<br><span class="err">Nicht in deiner Sammlung gefunden und daher nicht abgezogen: ${missing.map(esc).join(', ')}</span>` : '');
+  $('#storeInfo').scrollIntoView({behavior: 'smooth', block: 'center'});
 }
 $('#tradeBtn').addEventListener('click', openTrade);
 $('#trade').addEventListener('change', e => {
