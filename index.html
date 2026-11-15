@@ -1320,7 +1320,7 @@ function renderLive() {
 async function startLive() {
   if (L.on) return;
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { $('#storeInfo').textContent = ''; alertLive('Dieser Browser kann die Kamera nicht dauerhaft öffnen. Nutze „Karte fotografieren“.'); return; }
-  L.on = true; L.log = []; L.prev = null; L.done = null; L.stable = 0; L.lastId = null; L.lastOk = false; L.moved = true; L.failShown = false; L.lastRead = 0; L.status = 'Kamera wird gestartet …'; renderLive();
+  L.on = true; L.log = []; L.prev = null; L.done = null; L.stable = 0; L.lastId = null; L.lastOk = false; L.moved = true; L.failShown = false; L.lastRead = 0; L.okSig = null; L.status = 'Kamera wird gestartet …'; renderLive();
   $('#live').scrollIntoView({behavior: 'smooth', block: 'start'});
   try {
     L.stream = await navigator.mediaDevices.getUserMedia({video: {facingMode: {ideal: 'environment'}, width: {ideal: 3840}}, audio: false});
@@ -1343,18 +1343,21 @@ function stopLive() {
 async function tickLive() {
   const v = $('#live video'); if (!L.on || L.busy || !v || v.readyState < 2 || !v.videoWidth) return;
   const s = sig(v), motion = sigDiff(s, L.prev); L.prev = s;
-  if (motion > 9) L.moved = true;                       // seit dem letzten Lesen hat sich etwas bewegt
+  // Neue Karte = das Bild weicht deutlich von dem Bild beim letzten Treffer ab (Hand im Bild, andere Karte).
+  // Kleines Flimmern, Scharfstellen oder Helligkeit zählen nicht.
+  if (L.okSig && sigDiff(s, L.okSig) > 25) L.moved = true;
   const forced = L.force; L.force = false;
   const now = Date.now();
   if (!forced) {
-    if (motion > 9) { L.status = 'Bewegung … warte, bis die Karte ruhig liegt.'; renderLive(); return; }
+    if (motion > 9) { L.stable = 0; if (!L.lastOk || L.moved) { L.status = 'Bewegung … warte, bis die Karte ruhig liegt.'; renderLive(); } return; }
+    if (++L.stable < 3) return;                          // gut eine Sekunde ruhig
+    if (L.lastOk && !L.moved) return;                    // gleiche Karte liegt noch: nicht neu lesen
     if (now - (L.lastRead || 0) < 1200) return;          // höchstens etwa jede Sekunde lesen
     let contrast = 0, m = 0; for (const x of s) m += x; m /= s.length; for (const x of s) contrast += Math.abs(x - m); contrast /= s.length;
     if (contrast < 5) { L.lastOk = false; L.failShown = false; L.status = 'Kein Bild im Rahmen. Leg eine Karte hinein.'; renderLive(); return; }
     // Liegt nach einem Treffer noch dieselbe Karte da (nichts bewegt, Bild gleich), nicht erneut lesen
-    if (L.lastOk && !L.moved && L.done && sigDiff(s, L.done) < 14) return;
   }
-  L.busy = true; L.lastRead = now; const moved = L.moved || forced; L.moved = false; L.done = s;
+  L.busy = true; L.lastRead = now; const moved = L.moved || forced || !L.okSig; L.done = s;
   L.status = 'Lese Karte …'; renderLive();
   try {
     const r0 = cropRect(v), c = document.createElement('canvas'), sc = Math.min(1, 2000 / r0.h);
@@ -1366,14 +1369,14 @@ async function tickLive() {
     const r = await identify(c, x => { L.status = x; renderLive(); });
     const best = r.is_card && S.idx ? candidatesFor(r)[0] : null;
     if (best && L.on && best.id === L.lastId && !moved) {
-      L.lastOk = true; L.status = `Liegt noch: ${r.name_printed || best.base}. Leg die nächste Karte drauf.`;
+      L.lastOk = true; L.okSig = s; L.moved = false; L.status = `Liegt noch: ${r.name_printed || best.base}. Leg die nächste Karte drauf.`;
     } else if (best && L.on) {
       const variant = 'n', dn = dexOf(best.name), newMon = dn && !dexCaught().has(dn);
       addCard(best, variant, {thumb, r});
       const had = (S.coll.get(`${best.id}-${variant}`) || {}).count || 1;
       const tag = had > 1 ? `<b class="ltag dup">Doppelt · jetzt ${had}×</b>` : newMon ? '<b class="ltag new">Neu im Pokédex!</b>' : '<b class="ltag new">Neu</b>';
       L.log.push({ok: true, id: `${best.id}-${variant}`, thumb, tag, text: `${r.name_printed || best.base}${r.number ? ' · ' + r.number : ''} · ${fmt(priceOf(best.id, variant))}`});
-      L.lastId = best.id; L.lastOk = true; L.failShown = false;
+      L.lastId = best.id; L.lastOk = true; L.failShown = false; L.okSig = s; L.moved = false;
       L.status = `Erkannt: ${r.name_printed || best.base} · ${had > 1 ? 'hattest du schon' : 'neu'}. Nächste Karte!`; L.flash = true; setTimeout(() => { L.flash = false; L.on && renderLive(); }, 900); const pr = priceOf(best.id, variant); if (pr != null) verdict(pr); else beep(true);
     } else if (L.on) {
       // Nicht erkannt: es wird automatisch weiter versucht. In die Liste nur einmal pro Karte.
