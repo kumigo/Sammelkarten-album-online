@@ -1,0 +1,641 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Pokémon Sammelbuch</title>
+<meta name="theme-color" content="#0C7480">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Sammelbuch">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;500;600&display=swap">
+<style>
+/* Layout: one phone-width column; sticky value bar on top, scan panel, then the binder list. */
+:root{
+  --bg:#EEF1F7; --surface:#FFFFFF; --sunk:#E3E8F1; --ink:#16203A; --muted:#5B6683; --line:#D3DAE7;
+  --accent:#0C7480; --accent-ink:#FFFFFF; --gold:#A87A12; --good:#1D7A43; --warn:#B4531B; --bad:#B42335;
+  --font-display:"Chakra Petch", "Segoe UI", system-ui, sans-serif;
+  --font-body:"Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --r:12px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E1420; --surface:#172032; --sunk:#111927; --ink:#E7ECF5; --muted:#97A3BC; --line:#28344B;
+  --accent:#38B9C3; --accent-ink:#06232A; --gold:#E3BC5B; --good:#58C985; --warn:#EE9A5B; --bad:#F07585; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E1420; --surface:#172032; --sunk:#111927; --ink:#E7ECF5; --muted:#97A3BC; --line:#28344B;
+  --accent:#38B9C3; --accent-ink:#06232A; --gold:#E3BC5B; --good:#58C985; --warn:#EE9A5B; --bad:#F07585; color-scheme:dark}
+html,body{background:var(--bg);color:var(--ink)}
+body{font-family:var(--font-body);font-size:15px;line-height:1.45}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:640px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 40px;display:flex;flex-direction:column;gap:18px}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.top .in{max-width:640px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px;display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+.brand{font-family:var(--font-display);font-weight:700;font-size:15px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.total{font-family:var(--font-display);font-weight:700;font-size:30px;line-height:1;color:var(--gold);font-variant-numeric:tabular-nums}
+.sub{font-size:12.5px;color:var(--muted)}
+.right{text-align:right}
+h2{font-family:var(--font-display);font-weight:600;font-size:18px;margin:0;letter-spacing:.02em;text-wrap:balance}
+.actions{display:grid;grid-template-columns:1fr auto;gap:10px;margin-top:16px}
+.btn{appearance:none;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:600 15px/1 var(--font-body);padding:13px 16px;border-radius:var(--r);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;min-height:46px}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-family:var(--font-display);font-size:17px;letter-spacing:.03em}
+.btn.small{padding:8px 12px;min-height:36px;font-size:14px}
+.btn.ghost{background:transparent}
+.btn.danger{color:var(--bad);border-color:var(--bad);background:transparent}
+.btn:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.field{width:100%;box-sizing:border-box;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:15px var(--font-body);padding:12px 14px;border-radius:var(--r);min-height:46px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:14px}
+.note{font-size:13.5px;color:var(--muted)}
+.note b{color:var(--ink)}
+.status{display:flex;gap:10px;align-items:center;font-size:14px;color:var(--muted)}
+.spin{width:16px;height:16px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--accent);animation:sp 0.9s linear infinite;flex:none}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation-duration:3s}}
+.scanhead{display:grid;grid-template-columns:96px 1fr;gap:14px;align-items:start}
+.scanhead img{width:96px;aspect-ratio:63/88;object-fit:cover;border-radius:6px;background:var(--sunk);max-width:100%}
+.scanhead .info{min-width:0;display:flex;flex-direction:column;gap:4px}
+.cardname{font-family:var(--font-display);font-weight:700;font-size:21px;line-height:1.15;word-break:break-word}
+.price{font-family:var(--font-display);font-weight:700;font-size:26px;color:var(--gold);font-variant-numeric:tabular-nums}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;padding:4px 10px;border-radius:999px;border:1px solid currentColor;width:fit-content}
+.pill.new{color:var(--good)}
+.pill.have{color:var(--warn)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;width:fit-content}
+.seg button{appearance:none;border:0;background:transparent;color:var(--muted);font:600 13.5px var(--font-body);padding:8px 12px;cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--accent);color:var(--accent-ink)}
+.kv{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.kv div{background:var(--sunk);border-radius:10px;padding:8px 10px;min-width:0}
+.kv span{display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.kv strong{font-variant-numeric:tabular-nums;font-size:15px}
+.row-actions{display:flex;flex-wrap:wrap;gap:8px}
+.cands{display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.cand{appearance:none;background:none;border:0;border-bottom:1px solid var(--line);text-align:left;color:var(--ink);font:inherit;padding:10px 2px;display:grid;grid-template-columns:1fr auto;gap:10px;cursor:pointer;align-items:center}
+.cand:hover{background:var(--sunk)}
+.cand[aria-current=true]{box-shadow:inset 3px 0 0 var(--accent);padding-left:10px}
+.cand .n{font-weight:600;min-width:0;word-break:break-word}
+.cand .m{font-size:12.5px;color:var(--muted)}
+.cand .p{font-variant-numeric:tabular-nums;font-weight:600;color:var(--gold);text-align:right}
+.listhead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.tools{display:grid;grid-template-columns:1fr auto;gap:8px}
+select.field{width:auto}
+.binder{display:flex;flex-direction:column;gap:8px}
+.item{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:10px;display:grid;grid-template-columns:52px minmax(0,1fr) auto;gap:12px;align-items:center}
+.thumb{width:52px;aspect-ratio:63/88;border-radius:4px;object-fit:cover;background:var(--sunk);display:block}
+.item .t{font-weight:600;line-height:1.25;word-break:break-word}
+.item .s{font-size:12.5px;color:var(--muted)}
+.item .v{text-align:right;font-variant-numeric:tabular-nums;display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.item .v b{color:var(--gold);font-size:16px}
+.step{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.step button{appearance:none;border:0;background:var(--sunk);color:var(--ink);width:30px;height:28px;font:600 16px var(--font-body);cursor:pointer}
+.step span{min-width:26px;text-align:center;font-weight:600;font-size:14px}
+.empty{border:1.5px dashed var(--line);border-radius:16px;padding:22px 18px;text-align:center;color:var(--muted);display:flex;flex-direction:column;gap:8px;align-items:center}
+.empty .slots{display:grid;grid-template-columns:repeat(3,38px);gap:6px;margin-bottom:4px}
+.empty .slots i{aspect-ratio:63/88;border-radius:4px;background:var(--sunk);border:1px solid var(--line)}
+.foot{font-size:12.5px;color:var(--muted);display:flex;flex-direction:column;gap:8px}
+.foot .line{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+a{color:var(--accent)}
+.err{color:var(--bad)}
+ol.steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;font-size:14px}
+code{font-size:12.5px;background:var(--sunk);padding:1px 5px;border-radius:4px;word-break:break-all}
+</style><style>
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0}
+img{max-width:100%}
+[hidden]{display:none!important}
+.foot .btns{display:flex;flex-wrap:wrap;gap:8px}
+label.lbl{font-size:13px;font-weight:600;display:flex;flex-direction:column;gap:6px}
+.ok{color:var(--good)}
+</style>
+</head>
+<body>
+<header class="top"><div class="in">
+  <div>
+    <div class="brand">Sammelbuch</div>
+    <div class="sub" id="countLine">Noch keine Karten</div>
+  </div>
+  <div class="right">
+    <div class="total" id="total">0,00 €</div>
+    <div class="sub">Gesamtwert (Cardmarket-Trend)</div>
+  </div>
+</div></header>
+
+<main class="wrap">
+  <section>
+    <div class="actions">
+      <label class="btn primary" for="cam">Karte fotografieren</label>
+      <label class="btn" for="gal">Galerie</label>
+    </div>
+    <input type="file" id="cam" accept="image/*" capture="environment">
+    <input type="file" id="gal" accept="image/*">
+    <div style="margin-top:10px">
+      <input class="field" id="search" type="search" placeholder="Karte suchen, z. B. Charizard ex" autocomplete="off" enterkeyhint="search">
+    </div>
+    <p class="note" id="camNote" hidden></p>
+  </section>
+
+  <section class="panel" id="scan" hidden aria-live="polite"></section>
+
+  <section class="panel" id="settings" hidden>
+    <h2>Kartenerkennung einrichten</h2>
+    <p class="note">Die Fotos liest Claude über die Anthropic-API. Dafür brauchst du einen eigenen API-Schlüssel von <a href="https://platform.claude.com/settings/keys" target="_blank" rel="noopener">platform.claude.com</a>. Er wird nur auf diesem Gerät gespeichert. Ein Foto kostet etwa 1 bis 2 Cent.</p>
+    <label class="lbl" for="apiKey">API-Schlüssel
+      <input class="field" id="apiKey" type="password" placeholder="sk-ant-…" autocomplete="off">
+    </label>
+    <label class="lbl" for="model">Modell
+      <select class="field" id="model" style="width:100%">
+        <option value="claude-opus-5-5">Claude Opus 5.5 (genaueste Erkennung)</option>
+        <option value="claude-sonnet-5-5">Claude Sonnet 5.5 (günstiger)</option>
+        <option value="claude-haiku-5-5">Claude Haiku 5.5 (am günstigsten)</option>
+      </select>
+    </label>
+    <div class="row-actions">
+      <button class="btn primary" type="button" id="saveKey">Speichern</button>
+      <button class="btn small ghost" type="button" id="closeSettings">Schließen</button>
+    </div>
+    <p class="note" id="keyState"></p>
+  </section>
+
+  <section class="panel" id="setup" hidden></section>
+
+  <section style="display:flex;flex-direction:column;gap:12px">
+    <div class="listhead">
+      <h2>Meine Karten</h2>
+      <span class="sub" id="listSub"></span>
+    </div>
+    <div class="tools" id="tools" hidden>
+      <input class="field" id="filter" type="search" placeholder="In Sammlung filtern" autocomplete="off">
+      <select class="field" id="sort" aria-label="Sortierung">
+        <option value="value">Wert</option>
+        <option value="new">Neueste</option>
+        <option value="name">Name</option>
+      </select>
+    </div>
+    <div class="binder" id="binder"></div>
+  </section>
+
+  <footer class="foot">
+    <div class="line"><span id="dataInfo">Kartendaten werden geladen …</span></div>
+    <div class="btns">
+      <button class="btn small" type="button" id="openSettings">Einstellungen</button>
+      <button class="btn small" type="button" id="exportBtn">Backup speichern</button>
+      <label class="btn small" for="importFile">Backup laden</label>
+      <input type="file" id="importFile" accept="application/json,.json">
+    </div>
+    <div id="storeInfo">Deine Sammlung wird auf diesem Gerät gespeichert. Speichere ab und zu ein Backup.</div>
+  </footer>
+</main>
+<script type="module">
+const $ = s => document.querySelector(s);
+const eur = new Intl.NumberFormat('de-DE', {style: 'currency', currency: 'EUR'});
+const fmt = v => (v == null || isNaN(v)) ? '–' : eur.format(v);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const key = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\(.*?\)/g, '').replace(/[^a-z0-9]/g, '');
+
+const S = {prices: null, priceDate: null, idx: null, prodDate: null, coll: new Map(), scan: null, sort: 'value', filter: '', confirmDel: null};
+
+/* ---------- Speicher auf dem Gerät (IndexedDB) ---------- */
+function idbOpen() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open('sammelbuch', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('kv');
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+  });
+}
+async function idbGet(k) {
+  const d = await idbOpen();
+  return new Promise((res, rej) => { const q = d.transaction('kv').objectStore('kv').get(k); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); });
+}
+async function idbSet(k, v) {
+  const d = await idbOpen();
+  await new Promise((res, rej) => { const tx = d.transaction('kv', 'readwrite'); tx.objectStore('kv').put(v, k); tx.oncomplete = res; tx.onerror = () => rej(tx.error); });
+}
+let saving = Promise.resolve();
+function saveColl() {
+  const snapshot = [...S.coll];
+  saving = saving.then(() => idbSet('karten', snapshot)).catch(e => { $('#storeInfo').innerHTML = `<span class="err">Speichern fehlgeschlagen: ${esc(e && e.message)}</span>`; });
+  return saving;
+}
+const settings = {
+  get key() { try { return localStorage.getItem('sb-api-key') || ''; } catch (e) { return ''; } },
+  set key(v) { try { localStorage.setItem('sb-api-key', v); } catch (e) {} },
+  get model() { try { return localStorage.getItem('sb-model') || 'claude-opus-5-5'; } catch (e) { return 'claude-opus-5-5'; } },
+  set model(v) { try { localStorage.setItem('sb-model', v); } catch (e) {} },
+};
+
+/* ---------- Cardmarket-Daten (täglich per GitHub Action erzeugt) ---------- */
+function splitName(n) {
+  const i = n.indexOf(' [');
+  if (i < 0) return {base: n, atk: []};
+  return {base: n.slice(0, i), atk: n.slice(i + 2).replace(/\]\s*$/, '').split('|').map(s => s.trim()).filter(Boolean)};
+}
+function indexProducts(rows) {
+  const byExp = new Map();
+  for (const p of rows) { let a = byExp.get(p[2]); if (!a) byExp.set(p[2], a = []); a.push(p); }
+  const items = [];
+  for (const [exp, arr] of byExp) {
+    arr.sort((a, b) => a[0] - b[0]);
+    arr.forEach((p, i) => {
+      const {base, atk} = splitName(p[1]);
+      items.push({id: p[0], name: p[1], base, baseKey: key(base.split(' - ')[0]), atk, atkKeys: atk.map(key), exp, meta: p[3], pos: i + 1, expSize: arr.length});
+    });
+  }
+  const byKey = new Map(), byId = new Map();
+  for (const it of items) { let a = byKey.get(it.baseKey); if (!a) byKey.set(it.baseKey, a = []); a.push(it); byId.set(it.id, it); }
+  return {items, byKey, byId};
+}
+async function getJson(url) {
+  const r = await fetch(url, {cache: 'no-cache'});
+  if (!r.ok) throw new Error(`${url}: HTTP ${r.status}`);
+  return r.json();
+}
+async function loadData() {
+  setData('Lade Cardmarket-Daten …', true);
+  try {
+    const [kat, pre] = await Promise.all([getJson('data/katalog.json'), getJson('data/preise.json')]);
+    S.idx = indexProducts(kat.rows); S.prodDate = kat.date;
+    S.prices = new Map(pre.rows.map(r => [r[0], r])); S.priceDate = pre.date;
+    $('#setup').hidden = true;
+  } catch (e) {
+    setData('Kartendaten konnten nicht geladen werden.', false, true);
+    const el = $('#setup'); el.hidden = false;
+    el.innerHTML = `<h2>Kartendaten nicht erreichbar</h2><p class="note">Ohne Internet kann die App die Cardmarket-Preise nicht laden. Deine Sammlung bleibt trotzdem erhalten.</p><button class="btn small" type="button" data-act="reload">Erneut versuchen</button>`;
+  }
+  render();
+}
+function setData(text, busy, isErr) {
+  $('#dataInfo').innerHTML = (busy ? '<span class="status"><span class="spin"></span>' : '') + `<span class="${isErr ? 'err' : ''}">${esc(text)}</span>` + (busy ? '</span>' : '');
+}
+function dataLine() {
+  const d = s => { const t = Date.parse(s); return t ? new Date(t).toLocaleString('de-DE', {day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'}) : '–'; };
+  if (S.prices && S.idx) setData(`Cardmarket-Preise vom ${d(S.priceDate)} · ${S.idx.items.length.toLocaleString('de-DE')} Karten im Katalog`);
+}
+
+/* ---------- Preise ---------- */
+function priceOf(id, variant) {
+  const p = S.prices && S.prices.get(id);
+  if (!p) return null;
+  const ok = v => (v > 0 ? v : null);
+  if (variant === 'r') return ok(p[5]);
+  return ok(p[1]) ?? ok(p[2]);
+}
+function priceDetail(id, variant) {
+  const p = S.prices && S.prices.get(id);
+  if (!p) return null;
+  return variant === 'r' ? {trend: p[5], low: p[6], avg30: p[7]} : {trend: p[1], low: p[3], avg30: p[4]};
+}
+function cmLink(name) { return 'https://www.cardmarket.com/de/Pokemon/Products/Search?searchString=' + encodeURIComponent(name); }
+
+/* ---------- Erkannte Karte im Cardmarket-Katalog finden ---------- */
+function lev(a, b) {
+  if (Math.abs(a.length - b.length) > 3) return 9;
+  const d = Array.from({length: b.length + 1}, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    let prev = d[0]; d[0] = i;
+    for (let j = 1; j <= b.length; j++) { const t = d[j]; d[j] = Math.min(d[j] + 1, d[j - 1] + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1)); prev = t; }
+  }
+  return d[b.length];
+}
+function candidatesFor(r) {
+  if (!S.idx) return [];
+  const names = [r.name_en, r.name_printed].filter(Boolean).map(key).filter(Boolean);
+  let pool = [];
+  for (const k of names) pool.push(...(S.idx.byKey.get(k) || []));
+  if (!pool.length && names[0]) {
+    const k = names[0];
+    for (const [bk, arr] of S.idx.byKey) if (bk.length >= 3 && (bk.includes(k) || k.includes(bk))) pool.push(...arr);
+    if (!pool.length) for (const [bk, arr] of S.idx.byKey) if (lev(bk, k) <= 2) pool.push(...arr);
+  }
+  pool = [...new Set(pool)];
+  const atk = (r.attacks_en || []).map(key).filter(Boolean);
+  const num = parseInt(String(r.number || '').replace(/^[A-Za-z]+/, ''), 10);
+  const total = parseInt(r.set_total, 10);
+  for (const c of pool) {
+    let s = 0;
+    if (atk.length && c.atkKeys.length) {
+      let hit = 0; for (const a of atk) if (c.atkKeys.some(b => b === a || (a.length > 4 && (b.includes(a) || a.includes(b))))) hit++;
+      s += 10 * hit / Math.max(atk.length, c.atkKeys.length);
+    }
+    // Cardmarket führt die Karten eines Sets in Druckreihenfolge, oft um ein paar Einträge verschoben.
+    if (!isNaN(num)) { const d = c.pos - num; s += Math.max(0, 5 - (d >= 0 ? d * 0.25 : -d * 0.8)); }
+    if (!isNaN(total)) s += c.expSize >= total ? (c.expSize <= total * 1.6 + 15 ? 4 : 1) : -6;
+    c._score = s;
+  }
+  pool.sort((a, b) => b._score - a._score || b.id - a.id);
+  return pool.slice(0, 12);
+}
+function ownedOf(id) { let n = 0; for (const e of S.coll.values()) if (e.idProduct === id) n += e.count || 0; return n; }
+function ownedSameName(it) { let n = 0; for (const e of S.coll.values()) if (e.idProduct !== it.id && key(splitName(e.name || '').base.split(' - ')[0]) === it.baseKey) n += e.count || 0; return n; }
+
+/* ---------- Foto -> Claude ---------- */
+function loadImg(file) {
+  return new Promise((res, rej) => { const u = URL.createObjectURL(file); const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('Bild konnte nicht gelesen werden')); i.src = u; });
+}
+function scaled(img, max) {
+  const s = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+  const c = document.createElement('canvas'); c.width = Math.round(img.naturalWidth * s); c.height = Math.round(img.naturalHeight * s);
+  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); return c;
+}
+
+const CARD_SCHEMA = {
+  type: 'object',
+  properties: {
+    is_card: {type: 'boolean'},
+    name_printed: {type: 'string'},
+    name_en: {type: 'string'},
+    attacks_en: {type: 'array', items: {type: 'string'}},
+    number: {type: 'string'},
+    set_total: {type: 'string'},
+    set_code: {type: 'string'},
+    set_name: {type: 'string'},
+    language: {type: 'string'},
+    rarity: {type: 'string'},
+    finish: {type: 'string', enum: ['normal', 'holo', 'reverse_holo', 'unklar']},
+    hinweis: {type: 'string'},
+  },
+  required: ['is_card', 'name_printed', 'name_en', 'attacks_en', 'number', 'set_total', 'set_code', 'set_name', 'language', 'rarity', 'finish', 'hinweis'],
+  additionalProperties: false,
+};
+const PROMPT = `Das Bild ist ein Handyfoto einer Pokémon-Sammelkarte (TCG). Lies die Karte genau und fülle die Felder:
+- is_card: false, wenn keine Pokémon-Karte zu sehen ist (dann die übrigen Felder leer lassen und in hinweis kurz sagen, was zu sehen ist).
+- name_printed: der Name genau wie auf der Karte gedruckt.
+- name_en: der offizielle englische Kartenname im englischen TCG, mit Zusätzen wie ex, EX, GX, V, VMAX, VSTAR (z. B. "Glurak ex" -> "Charizard ex", "Professoren-Forschung" -> "Professor's Research").
+- attacks_en: die offiziellen englischen Namen aller Attacken und Fähigkeiten, in gedruckter Reihenfolge.
+- number: die Sammelnummer links vom Schrägstrich, z. B. "125", "TG05" oder "SWSH050".
+- set_total: die Zahl rechts vom Schrägstrich, sonst "".
+- set_code: das gedruckte Set-Kürzel (z. B. "OBF"), sonst "".
+- set_name: der englische Set-Name, falls erkennbar, sonst "".
+- language: Sprache der Karte als Code, z. B. "de", "en", "ja".
+- rarity: Seltenheit, falls erkennbar, sonst "".
+- finish: normal, holo, reverse_holo oder unklar.
+- hinweis: kurzer Hinweis auf Deutsch, falls etwas unsicher oder schlecht lesbar ist, sonst "".`;
+
+let sdkPromise = null;
+function sdk() {
+  sdkPromise ||= import('https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk@1.3.0/+esm').then(m => m.default || m.Anthropic);
+  return sdkPromise;
+}
+async function identify(blob) {
+  const Anthropic = await sdk();
+  const client = new Anthropic({apiKey: settings.key, dangerouslyAllowBrowser: true});
+  const data = await new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result).split(',')[1]); fr.onerror = () => rej(fr.error); fr.readAsDataURL(blob); });
+  const model = settings.model;
+  const req = {
+    model,
+    max_tokens: 4000,
+    output_config: {effort: 'low', format: {type: 'json_schema', schema: CARD_SCHEMA}},
+    messages: [{role: 'user', content: [
+      {type: 'image', source: {type: 'base64', media_type: 'image/jpeg', data}},
+      {type: 'text', text: PROMPT},
+    ]}],
+  };
+  // Opus/Sonnet: bei einer Sicherheits-Ablehnung springt ein anderes Modell serverseitig ein.
+  const msg = model === 'claude-haiku-5-5'
+    ? await client.messages.create(req)
+    : await client.beta.messages.create({...req, betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default'});
+  if (msg.stop_reason === 'refusal') throw new Error('Claude hat das Bild nicht ausgewertet');
+  if (msg.stop_reason === 'max_tokens') throw new Error('Antwort war unvollständig');
+  const text = msg.content.filter(b => b.type === 'text').map(b => b.text).join('');
+  return JSON.parse(text);
+}
+
+async function handlePhoto(file) {
+  if (!file) return;
+  if (!settings.key) { openSettings('Richte zuerst die Kartenerkennung ein. Danach kannst du direkt fotografieren.'); return; }
+  const scan = S.scan = {state: 'reading', thumb: null, r: null, cands: [], sel: 0, variant: 'n', err: null};
+  renderScan();
+  try {
+    const img = await loadImg(file);
+    scan.thumb = scaled(img, 160).toDataURL('image/jpeg', 0.62);
+    renderScan();
+    const blob = await new Promise(res => scaled(img, 1400).toBlob(res, 'image/jpeg', 0.85));
+    const r = await identify(blob);
+    if (S.scan !== scan) return;
+    scan.r = r || {};
+    if (!scan.r.is_card) { scan.state = 'nocard'; renderScan(); return; }
+    scan.variant = scan.r.finish === 'reverse_holo' ? 'r' : 'n';
+    scan.cands = candidatesFor(scan.r);
+    scan.state = 'done';
+  } catch (e) {
+    scan.state = 'error';
+    const st = e && e.status;
+    scan.err = st === 401 ? 'Der API-Schlüssel wurde abgelehnt. Prüf ihn in den Einstellungen.'
+      : st === 429 ? 'Gerade zu viele Anfragen. Versuch es in einer Minute noch einmal.'
+      : st === 400 && /credit|balance/i.test(e.message || '') ? 'Dein Anthropic-Guthaben ist aufgebraucht. Lade es auf platform.claude.com auf.'
+      : 'Die Karte konnte nicht gelesen werden (' + esc(e && e.message || e) + '). Versuch ein schärferes Foto ohne Spiegelung.';
+  }
+  renderScan();
+}
+
+function startSearch(q) {
+  if (!S.idx) return;
+  const k = key(q);
+  if (k.length < 2) { if (S.scan && S.scan.state === 'search') { S.scan = null; renderScan(); } return; }
+  let res = [...(S.idx.byKey.get(k) || [])];
+  if (res.length < 40) for (const it of S.idx.items) { if (res.length >= 60) break; if (it.baseKey !== k && (it.baseKey.includes(k) || key(it.name).includes(k))) res.push(it); }
+  S.scan = {state: 'search', q, thumb: null, r: null, cands: res.slice(0, 40), sel: -1, variant: 'n'};
+  renderScan();
+}
+
+/* ---------- Sammlung ---------- */
+function addCard(it, variant, scan) {
+  const id = `${it.id}-${variant}`;
+  const ex = S.coll.get(id);
+  const now = Date.now();
+  const r = scan && scan.r;
+  const label = r ? [r.set_name, r.number ? (r.number + (r.set_total ? '/' + r.set_total : '')) : null].filter(Boolean).join(' · ') : '';
+  const doc = ex ? {...ex, count: (ex.count || 0) + 1, updatedAt: now}
+    : {idProduct: it.id, name: it.name, printed: (r && r.name_printed) || it.base, variant, count: 1, setLabel: label, lang: (r && r.language) || '', thumb: (scan && scan.thumb) || '', addedAt: now, updatedAt: now};
+  if (ex && !ex.thumb && scan && scan.thumb) doc.thumb = scan.thumb;
+  S.coll.set(id, doc); render(); saveColl();
+}
+function setCount(id, n) {
+  const ex = S.coll.get(id); if (!ex) return;
+  if (n <= 0) { S.coll.delete(id); S.confirmDel = null; }
+  else S.coll.set(id, {...ex, count: n, updatedAt: Date.now()});
+  render(); saveColl();
+}
+function exportBackup() {
+  const data = JSON.stringify({app: 'pokemon-sammelbuch', version: 1, exportedAt: new Date().toISOString(), karten: Object.fromEntries(S.coll)});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([data], {type: 'application/json'}));
+  a.download = `sammelbuch-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+async function importBackup(file) {
+  try {
+    const j = JSON.parse(await file.text());
+    if (!j || j.app !== 'pokemon-sammelbuch' || typeof j.karten !== 'object') throw new Error('Das ist keine Sammelbuch-Sicherung.');
+    let n = 0;
+    for (const [id, e] of Object.entries(j.karten)) {
+      if (!e || typeof e.idProduct !== 'number') continue;
+      const ex = S.coll.get(id);
+      if (!ex || (e.updatedAt || 0) > (ex.updatedAt || 0)) { S.coll.set(id, e); n++; }
+    }
+    render(); await saveColl();
+    $('#storeInfo').innerHTML = `<span class="ok">Backup geladen: ${n} Einträge übernommen.</span>`;
+  } catch (e) { $('#storeInfo').innerHTML = `<span class="err">${esc(e.message)}</span>`; }
+}
+
+/* ---------- Einstellungen ---------- */
+function openSettings(msg) {
+  const el = $('#settings'); el.hidden = false;
+  $('#apiKey').value = settings.key; $('#model').value = settings.model;
+  $('#keyState').textContent = msg || (settings.key ? 'Ein Schlüssel ist gespeichert.' : '');
+  el.scrollIntoView({behavior: 'smooth', block: 'start'});
+}
+
+/* ---------- Anzeige ---------- */
+function renderScan() {
+  const el = $('#scan'), sc = S.scan;
+  if (!sc) { el.hidden = true; el.innerHTML = ''; return; }
+  el.hidden = false;
+  const photo = sc.thumb ? `<img src="${sc.thumb}" alt="Dein Foto">` : '<img alt="">';
+  const close = `<button class="btn small ghost" type="button" data-act="close">Schließen</button>`;
+  if (sc.state === 'reading') {
+    el.innerHTML = `<div class="scanhead">${photo}<div class="info"><div class="status"><span class="spin"></span>Claude liest die Karte …</div><p class="note">Name, Attacken und Kartennummer werden erkannt und mit Cardmarket abgeglichen.</p></div></div>`;
+    return;
+  }
+  if (sc.state === 'error' || sc.state === 'nocard') {
+    const msg = sc.state === 'nocard' ? ('Auf dem Foto habe ich keine Pokémon-Karte erkannt. ' + esc(sc.r && sc.r.hinweis || '')) : sc.err;
+    el.innerHTML = `<div class="scanhead">${photo}<div class="info"><p class="err" style="margin:0">${msg}</p></div></div><div class="row-actions">${close}</div>`;
+    return;
+  }
+  const r = sc.r, cands = sc.cands;
+  let head = '';
+  if (r) {
+    const setTxt = [r.set_name, r.set_code, r.number ? r.number + (r.set_total ? '/' + r.set_total : '') : null].filter(Boolean).join(' · ');
+    head = `<div class="sub">Erkannt: <b>${esc(r.name_printed || r.name_en)}</b>${setTxt ? ' · ' + esc(setTxt) : ''}${r.language ? ' · ' + esc(String(r.language).toUpperCase()) : ''}</div>${r.hinweis ? `<div class="sub">${esc(r.hinweis)}</div>` : ''}`;
+  }
+  if (!S.idx || !cands.length) {
+    el.innerHTML = `<div class="scanhead">${photo}<div class="info"><div class="cardname">${esc(r ? (r.name_printed || r.name_en) : sc.q)}</div>${head}<p class="note">${S.idx ? 'Keine passende Karte im Cardmarket-Katalog gefunden. Probier die Suche mit dem englischen Namen.' : 'Die Cardmarket-Daten sind noch nicht geladen.'}</p></div></div><div class="row-actions">${close}</div>`;
+    return;
+  }
+  const it = sc.sel >= 0 ? cands[sc.sel] : null;
+  let main = '';
+  if (it) {
+    const pd = priceDetail(it.id, sc.variant);
+    const own = ownedOf(it.id), other = ownedSameName(it);
+    const pill = own ? `<span class="pill have">Schon ${own}× in deiner Sammlung</span>` : `<span class="pill new">Neu für deine Sammlung</span>`;
+    main = `<div class="scanhead">${photo}
+      <div class="info">
+        <div class="cardname">${esc(r && r.name_printed || it.base)}</div>
+        <div class="sub">${esc(it.name)}</div>
+        ${head}
+        <div class="price">${fmt(pd && pd.trend)}</div>
+        ${pill}
+        ${other ? `<span class="sub">Dazu ${other}× dieselbe Karte aus einem anderen Set.</span>` : ''}
+      </div></div>
+      <div class="seg" role="group" aria-label="Ausführung">
+        <button type="button" data-var="n" aria-pressed="${sc.variant === 'n'}">Normal / Holo</button>
+        <button type="button" data-var="r" aria-pressed="${sc.variant === 'r'}">Reverse Holo</button>
+      </div>
+      <div class="kv">
+        <div><span>Trend</span><strong>${fmt(pd && pd.trend)}</strong></div>
+        <div><span>Ab</span><strong>${fmt(pd && pd.low)}</strong></div>
+        <div><span>Ø 30 Tage</span><strong>${fmt(pd && pd.avg30)}</strong></div>
+      </div>
+      <div class="row-actions">
+        <button class="btn primary" type="button" data-act="add">${own ? 'Noch eine hinzufügen' : 'Zur Sammlung hinzufügen'}</button>
+        <a class="btn small" href="${cmLink(it.base)}" target="_blank" rel="noopener">Auf Cardmarket</a>
+        ${close}
+      </div>`;
+  } else {
+    main = `<div class="listhead"><h2>Suche: ${esc(sc.q)}</h2>${close}</div>`;
+  }
+  const list = cands.map((c, i) => `<button class="cand" type="button" data-sel="${i}" aria-current="${i === sc.sel}">
+      <span style="min-width:0"><span class="n">${esc(c.name)}</span><br><span class="m">Set #${c.exp} · Position ${c.pos}/${c.expSize}${ownedOf(c.id) ? ' · im Besitz' : ''}</span></span>
+      <span class="p">${fmt(priceOf(c.id, 'n'))}</span></button>`).join('');
+  const lbl = it ? (cands.length > 1 ? `<p class="note" style="margin:0">Nicht die richtige? Wähle die passende Version:</p>` : '') : `<p class="note" style="margin:0">${cands.length} Treffer. Tippe auf deine Karte.</p>`;
+  el.innerHTML = main + (cands.length > 1 || !it ? lbl + `<div class="cands">${list}</div>` : '');
+}
+
+function rowValue(e) { const p = priceOf(e.idProduct, e.variant); return p == null ? null : p * (e.count || 0); }
+function render() {
+  const all = [...S.coll.entries()];
+  let total = 0, cards = 0, missing = 0;
+  for (const [, e] of all) { cards += e.count || 0; const v = rowValue(e); if (v == null) missing++; else total += v; }
+  $('#total').textContent = fmt(total);
+  $('#countLine').textContent = cards ? `${cards} ${cards === 1 ? 'Karte' : 'Karten'} · ${all.length} verschiedene` : 'Noch keine Karten';
+  $('#listSub').textContent = missing && S.prices ? `${missing} ohne Preis` : '';
+  $('#tools').hidden = all.length < 4;
+  const f = key(S.filter);
+  const rows = all.filter(([, e]) => !f || key(e.name).includes(f) || key(e.printed).includes(f));
+  if (S.sort === 'value') rows.sort((a, b) => (rowValue(b[1]) ?? -1) - (rowValue(a[1]) ?? -1));
+  else if (S.sort === 'new') rows.sort((a, b) => (b[1].addedAt || 0) - (a[1].addedAt || 0));
+  else rows.sort((a, b) => String(a[1].printed || a[1].name).localeCompare(String(b[1].printed || b[1].name), 'de'));
+  const b = $('#binder');
+  if (!all.length) {
+    b.innerHTML = `<div class="empty"><div class="slots"><i></i><i></i><i></i></div><b style="color:var(--ink)">Dein Sammelbuch ist noch leer</b><span>Tippe auf <b>Karte fotografieren</b> und halte die Karte gerade ins Bild. Sie landet hier mit ihrem aktuellen Cardmarket-Wert.</span></div>`;
+  } else {
+    b.innerHTML = rows.map(([id, e]) => {
+      const unit = priceOf(e.idProduct, e.variant), v = rowValue(e);
+      const del = S.confirmDel === id;
+      return `<div class="item">
+        ${e.thumb ? `<img class="thumb" src="${e.thumb}" alt="">` : '<span class="thumb"></span>'}
+        <div style="min-width:0"><div class="t">${esc(e.printed || e.name)}${e.variant === 'r' ? ' <span class="sub">(Reverse)</span>' : ''}</div>
+          <div class="s">${esc(e.setLabel || splitName(e.name).base)}${e.lang ? ' · ' + esc(String(e.lang).toUpperCase()) : ''}</div>
+          <div class="s">${fmt(unit)} pro Stück</div></div>
+        <div class="v"><b>${fmt(v)}</b>
+          ${del ? `<span class="row-actions"><button class="btn small danger" type="button" data-del="${esc(id)}">Löschen</button><button class="btn small ghost" type="button" data-nodel="1">Nein</button></span>`
+            : `<span class="step"><button type="button" aria-label="Eine weniger" data-dec="${esc(id)}">−</button><span>${e.count}</span><button type="button" aria-label="Eine mehr" data-inc="${esc(id)}">+</button></span>`}
+        </div></div>`;
+    }).join('') || `<p class="note">Keine Karte passt zum Filter.</p>`;
+  }
+  dataLine();
+  if (S.scan && S.scan.state !== 'reading') renderScan();
+}
+
+/* ---------- Ereignisse ---------- */
+for (const id of ['cam', 'gal']) $('#' + id).addEventListener('change', e => { const f = e.target.files[0]; e.target.value = ''; $('#search').value = ''; handlePhoto(f); });
+let st; $('#search').addEventListener('input', e => { clearTimeout(st); st = setTimeout(() => startSearch(e.target.value), 220); });
+$('#filter').addEventListener('input', e => { S.filter = e.target.value; render(); });
+$('#sort').addEventListener('change', e => { S.sort = e.target.value; render(); });
+$('#openSettings').addEventListener('click', () => openSettings());
+$('#closeSettings').addEventListener('click', () => { $('#settings').hidden = true; });
+$('#saveKey').addEventListener('click', () => {
+  const k = $('#apiKey').value.trim();
+  settings.key = k; settings.model = $('#model').value;
+  $('#keyState').innerHTML = k ? '<span class="ok">Gespeichert. Du kannst jetzt Karten fotografieren.</span>' : 'Kein Schlüssel gespeichert. Die Suche funktioniert trotzdem.';
+  updateCamNote();
+});
+$('#exportBtn').addEventListener('click', exportBackup);
+$('#importFile').addEventListener('change', e => { const f = e.target.files[0]; e.target.value = ''; if (f) importBackup(f); });
+document.addEventListener('click', e => {
+  const t = e.target.closest('button'); if (!t) return;
+  const sc = S.scan;
+  if (t.dataset.act === 'close') { S.scan = null; $('#search').value = ''; renderScan(); }
+  else if (t.dataset.act === 'reload') loadData();
+  else if (t.dataset.act === 'add' && sc && sc.cands[sc.sel]) {
+    addCard(sc.cands[sc.sel], sc.variant, sc);
+    t.textContent = 'Hinzugefügt ✓'; t.disabled = true;
+    setTimeout(() => { if (S.scan === sc) { S.scan = null; $('#search').value = ''; renderScan(); } }, 1100);
+  }
+  else if (t.dataset.var && sc) { sc.variant = t.dataset.var; renderScan(); }
+  else if (t.dataset.sel != null && sc) { sc.sel = +t.dataset.sel; renderScan(); $('#scan').scrollIntoView({behavior: 'smooth', block: 'start'}); }
+  else if (t.dataset.inc) { const x = S.coll.get(t.dataset.inc); if (x) setCount(t.dataset.inc, (x.count || 0) + 1); }
+  else if (t.dataset.dec) { const x = S.coll.get(t.dataset.dec); if (!x) return; if ((x.count || 0) <= 1) { S.confirmDel = t.dataset.dec; render(); } else setCount(t.dataset.dec, x.count - 1); }
+  else if (t.dataset.del) setCount(t.dataset.del, 0);
+  else if (t.dataset.nodel) { S.confirmDel = null; render(); }
+});
+function updateCamNote() {
+  const n = $('#camNote');
+  n.hidden = !!settings.key;
+  n.innerHTML = 'Für die Fotoerkennung brauchst du einmalig einen API-Schlüssel. <a href="#" id="setupLink">Jetzt einrichten</a>';
+  const l = $('#setupLink'); if (l) l.onclick = ev => { ev.preventDefault(); openSettings(); };
+}
+
+/* ---------- Start ---------- */
+updateCamNote();
+render();
+try { const saved = await idbGet('karten'); if (saved) S.coll = new Map(saved); } catch (e) { $('#storeInfo').innerHTML = '<span class="err">Der Gerätespeicher ist nicht verfügbar (privater Modus?). Karten gehen beim Schließen verloren.</span>'; }
+try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch (e) {}
+render();
+loadData();
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>

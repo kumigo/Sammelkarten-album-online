@@ -1,0 +1,12 @@
+{
+  "name": "Pokémon Sammelbuch",
+  "short_name": "Sammelbuch",
+  "description": "Pokémon-Karten fotografieren, Cardmarket-Wert sehen und die Sammlung verwalten.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#EEF1F7",
+  "theme_color": "#0C7480",
+  "lang": "de",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}
