@@ -1418,13 +1418,32 @@ function audio() {
 }
 // Handys geben Ton nur frei, wenn er während eines echten Tippens (nicht nur beim Berühren) gestartet wird.
 let speechPrimed = false;
+// iPhone: eine stumme, laufende Audio-Datei schaltet den Ton auf „Wiedergabe“, damit der Lautlos-Schalter und
+// die Sperre nach der Kamera die Ansage nicht verschlucken. Die Ansagen selbst sind kleine MP3-Dateien.
+const SILENT = 'data:audio/wav;base64,UklGRoQJAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YWAJAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIA=';
+let keepAlive = null; const CLIPS = {}; let clipsLoading = null;
+function loadClips() {
+  if (clipsLoading || !AC) return clipsLoading;
+  clipsLoading = Promise.all(['schmutz', 'naja', 'gut', 'jackpot'].map(async n => {
+    try { const r = await fetch('sounds/' + n + '.mp3'); const b = await r.arrayBuffer();
+      CLIPS[n] = await new Promise((ok, no) => { const p = AC.decodeAudioData(b, ok, no); if (p && p.then) p.then(ok, no); }); } catch (e) {}
+  }));
+  return clipsLoading;
+}
+function playClip(n) {
+  const a = audio(), b = CLIPS[n]; if (!a || !b || a.state !== 'running') return false;
+  const src = a.createBufferSource(), g = a.createGain(); g.gain.value = 1; src.buffer = b; src.connect(g).connect(a.destination); src.start(); return true;
+}
 function unlockAudio() {
+  try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
+  try { if (!keepAlive) { keepAlive = new Audio(SILENT); keepAlive.loop = true; keepAlive.setAttribute('playsinline', ''); } if (keepAlive.paused && !document.hidden) keepAlive.play().catch(() => {}); } catch (e) {}
   const a = audio(); if (!a) return;
+  loadClips();
   try { const b = a.createBuffer(1, 1, 22050), src = a.createBufferSource(); src.buffer = b; src.connect(a.destination); src.start(0); } catch (e) {}
   if (!speechPrimed && 'speechSynthesis' in window) { speechPrimed = true; try { const u = new SpeechSynthesisUtterance(' '); u.volume = 0; speechSynthesis.speak(u); } catch (e) {} }
 }
 for (const ev of ['click', 'touchend', 'keydown']) document.addEventListener(ev, unlockAudio, {capture: true, passive: true});
-document.addEventListener('visibilitychange', () => { if (!document.hidden) { audio(); try { speechSynthesis.resume(); } catch (e) {} } });
+document.addEventListener('visibilitychange', () => { if (document.hidden && keepAlive) keepAlive.pause(); if (!document.hidden) { audio(); if (keepAlive) keepAlive.play().catch(() => {}); try { speechSynthesis.resume(); } catch (e) {} } });
 window.addEventListener('focus', () => { audio(); try { speechSynthesis.resume(); } catch (e) {} });
 for (const id of ['cam', 'gal']) document.getElementById(id).addEventListener('change', () => { unlockAudio(); try { speechSynthesis.resume(); } catch (e) {} });
 function tones(seq, type = 'square') {
@@ -1438,10 +1457,10 @@ function tones(seq, type = 'square') {
   return (t - a.currentTime) * 1000;
 }
 const VERDICTS = [
-  {max: 5, word: 'Schmutz', say: 'Schmutz.', seq: [[392, .18], [370, .18], [349, .18], [262, .5]], type: 'sawtooth'},
-  {max: 10, word: 'Naja', say: 'Naja.', seq: [[523, .16], [440, .3]]},
-  {max: 20, word: 'Schon mal gut', say: 'Schon mal gut!', seq: [[523, .12], [659, .12], [784, .3]]},
-  {max: Infinity, word: 'Jackpot!', say: 'Jackpot!', seq: [[523, .1], [659, .1], [784, .1], [1047, .2], [0, .05], [784, .1], [1047, .45]]},
+  {max: 5, clip: 'schmutz', word: 'Schmutz', say: 'Schmutz.', seq: [[392, .18], [370, .18], [349, .18], [262, .5]], type: 'sawtooth'},
+  {max: 10, clip: 'naja', word: 'Naja', say: 'Naja.', seq: [[523, .16], [440, .3]]},
+  {max: 20, clip: 'gut', word: 'Schon mal gut', say: 'Schon mal gut!', seq: [[523, .12], [659, .12], [784, .3]]},
+  {max: Infinity, clip: 'jackpot', word: 'Jackpot!', say: 'Jackpot!', seq: [[523, .1], [659, .1], [784, .1], [1047, .2], [0, .05], [784, .1], [1047, .45]]},
 ];
 function verdict(price) {
   if (price == null || isNaN(price)) return;
@@ -1449,7 +1468,7 @@ function verdict(price) {
   const ms = tones(v.seq, v.type) || 0;
   // Nach der Kamera-App ist die Sprachausgabe auf manchen Handys pausiert: erst fortsetzen, dann kurz warten, dann sprechen.
   try { speechSynthesis.resume(); speechSynthesis.cancel(); } catch (e) {}
-  setTimeout(() => { try { speechSynthesis.resume(); const u = new SpeechSynthesisUtterance(v.say); u.lang = 'de-DE'; const vo = speechSynthesis.getVoices().find(x => /^de/i.test(x.lang)); if (vo) u.voice = vo; u.rate = 1; u.pitch = i === 3 ? 1.3 : i === 0 ? 0.7 : 1; speechSynthesis.speak(u); } catch (e) {} }, Math.max(ms, 150));
+  setTimeout(() => { if (playClip(v.clip)) return; try { speechSynthesis.resume(); const u = new SpeechSynthesisUtterance(v.say); u.lang = 'de-DE'; const vo = speechSynthesis.getVoices().find(x => /^de/i.test(x.lang)); if (vo) u.voice = vo; u.rate = 1; u.pitch = i === 3 ? 1.3 : i === 0 ? 0.7 : 1; speechSynthesis.speak(u); } catch (e) {} }, Math.max(ms, 150));
   try { navigator.vibrate && navigator.vibrate(i === 3 ? [80, 60, 80, 60, 200] : 60); } catch (e) {}
   let el = $('#verdict'); if (!el) { el = document.createElement('div'); el.id = 'verdict'; el.setAttribute('aria-live', 'polite'); document.body.appendChild(el); }
   el.className = 'verdict v' + i; el.innerHTML = `${esc(v.word)}<small>${fmt(price)}</small>`;

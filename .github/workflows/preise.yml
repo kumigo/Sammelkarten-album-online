@@ -31,7 +31,7 @@ jobs:
       - name: Seite zusammenstellen
         run: |
           mkdir -p _site
-          cp -r index.html manifest.webmanifest sw.js icon.svg data _site/
+          cp -r index.html manifest.webmanifest sw.js icon.svg data sounds _site/
           # Professor-Bild: erste Bilddatei mit "professor" im Namen wird als professor.png veröffentlicht
           prof=$(ls | grep -i -m1 -E 'professor.*\.(png|jpe?g|webp)$' || true)
           if [ -n "$prof" ]; then cp "$prof" _site/professor.png; fi
