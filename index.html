@@ -625,7 +625,8 @@ function candidatesFor(r) {
     if (!isNaN(total)) s += c.expSize >= total ? (c.expSize <= total * 1.6 + 15 ? 4 : 1) : -6;
     c._score = s;
   }
-  pool.sort((a, b) => b._score - a._score || b.id - a.id);
+  const pr = c => priceOf(c.id, 'n') ?? 1e9;
+  pool.sort((a, b) => b._score - a._score || pr(a) - pr(b) || b.id - a.id);
   return pool.slice(0, 12);
 }
 function ownedOf(id) { let n = 0; for (const e of S.coll.values()) if (e.idProduct === id) n += e.count || 0; return n; }
@@ -829,9 +830,10 @@ function renderScan() {
   }
   const r = sc.r, cands = sc.cands;
   let head = '';
+  const unsure = r && !r.number && cands.length > 1;
   if (r) {
     const setTxt = [r.set_name, r.set_code, r.number ? r.number + (r.set_total ? '/' + r.set_total : '') : null].filter(Boolean).join(' · ');
-    head = `<div class="sub">Erkannt: <b>${esc(r.name_printed || r.name_en)}</b>${setTxt ? ' · ' + esc(setTxt) : ''}${r.language ? ' · ' + esc(String(r.language).toUpperCase()) : ''}</div>${r.hinweis ? `<div class="sub">${esc(r.hinweis)}</div>` : ''}`;
+    head = `<div class="sub">Erkannt: <b>${esc(r.name_printed || r.name_en)}</b>${setTxt ? ' · ' + esc(setTxt) : ''}${r.language ? ' · ' + esc(String(r.language).toUpperCase()) : ''}</div>${r.hinweis ? `<div class="sub">${esc(r.hinweis)}</div>` : ''}${unsure ? '<div class="sub" style="color:var(--warn);font-weight:800">Kartennummer nicht lesbar, die Version ist geraten. Bitte unten die richtige wählen.</div>' : ''}`;
   }
   if (!S.idx || !cands.length) {
     el.innerHTML = `<div class="scanhead">${photo}<div class="info"><div class="cardname">${esc(r ? (r.name_printed || r.name_en) : sc.q)}</div>${head}<p class="note">${S.idx ? 'Keine passende Karte im Cardmarket-Katalog gefunden. Probier die Suche mit dem englischen Namen.' : 'Die Cardmarket-Daten sind noch nicht geladen.'}</p></div></div><div class="row-actions">${close}</div>`;
@@ -862,12 +864,12 @@ function renderScan() {
         <div><span>Ø 30 Tage</span><strong>${fmt(pd && pd.avg30)}</strong></div>
       </div>
       <div class="row-actions">
-        <button class="btn primary" type="button" data-act="add">${S.trade ? (S.trade.side === 'give' ? 'Zu „Ich gebe“' : 'Zu „Ich bekomme“') : own ? 'Noch eine hinzufügen' : 'Zur Sammlung hinzufügen'}</button>
+        <button class="btn primary" type="button" data-act="add">${sc.fix ? 'Diese Version übernehmen' : S.trade ? (S.trade.side === 'give' ? 'Zu „Ich gebe“' : 'Zu „Ich bekomme“') : own ? 'Noch eine hinzufügen' : 'Zur Sammlung hinzufügen'}</button>
         <a class="btn small" href="${cmLink(it.base)}" target="_blank" rel="noopener">Auf Cardmarket</a>
         ${close}
       </div>`;
   } else {
-    main = `<div class="listhead"><h2>Suche: ${esc(sc.q)}</h2>${close}</div>`;
+    main = `<div class="listhead"><h2>${sc.fix ? "Version ändern: " : "Suche: "}${esc(sc.q)}</h2>${close}</div>`;
   }
   const list = cands.map((c, i) => `<button class="cand" type="button" data-sel="${i}" aria-current="${i === sc.sel}">
       <span style="min-width:0"><span class="n">${esc(c.name)}</span><br><span class="m">Set #${c.exp} · Position ${c.pos}/${c.expSize}${ownedOf(c.id) ? ' · im Besitz' : ''}</span></span>
@@ -904,7 +906,7 @@ function render() {
           <div class="s">${fmt(unit)} pro Stück</div></div>
         <div class="v"><b>${fmt(v)}</b>
           ${del ? `<span class="row-actions"><button class="btn small danger" type="button" data-del="${esc(id)}">Löschen</button><button class="btn small ghost" type="button" data-nodel="1">Nein</button></span>`
-            : `<span class="step"><button type="button" aria-label="Eine weniger" data-dec="${esc(id)}">−</button><span>${e.count}</span><button type="button" aria-label="Eine mehr" data-inc="${esc(id)}">+</button></span>`}
+            : `<span class="step"><button type="button" aria-label="Eine weniger" data-dec="${esc(id)}">−</button><span>${e.count}</span><button type="button" aria-label="Eine mehr" data-inc="${esc(id)}">+</button></span><button class="btn small ghost" type="button" data-fix="${esc(id)}" style="margin-top:6px">Version ändern</button>`}
         </div></div>`;
     }).join('') || `<p class="note">Keine Karte passt zum Filter.</p>`;
   }
@@ -1007,6 +1009,26 @@ document.addEventListener('click', e => {
   const sc = S.scan;
   if (t.dataset.act === 'close') { S.scan = null; $('#search').value = ''; renderScan(); }
   else if (t.dataset.act === 'reload') loadData();
+  else if (t.dataset.act === 'add' && sc && sc.cands[sc.sel] && sc.fix) {
+    const old = S.coll.get(sc.fix), it = sc.cands[sc.sel], nid = `${it.id}-${sc.variant}`;
+    if (old) {
+      S.coll.delete(sc.fix);
+      const ex = S.coll.get(nid);
+      S.coll.set(nid, ex ? {...ex, count: (ex.count || 0) + (old.count || 1), updatedAt: Date.now()}
+        : {...old, idProduct: it.id, name: it.name, variant: sc.variant, printed: old.printed || it.base, updatedAt: Date.now()});
+      saveColl(); render();
+    }
+    S.scan = null; $('#search').value = ''; renderScan();
+    $('#storeInfo').innerHTML = `<span class="ok">Version geändert: ${esc(it.base)} · ${fmt(priceOf(it.id, sc.variant))} pro Stück.</span>`;
+  }
+  else if (t.dataset.fix) {
+    const e = S.coll.get(t.dataset.fix); if (!e || !S.idx) return;
+    const base = splitName(e.name).base, k = key(base.split(' - ')[0]);
+    const pool = [...(S.idx.byKey.get(k) || [])].sort((a, b) => (priceOf(a.id, 'n') ?? 1e9) - (priceOf(b.id, 'n') ?? 1e9)).slice(0, 400);
+    const cur = pool.findIndex(c => c.id === e.idProduct);
+    S.scan = {state: 'search', q: base, thumb: e.thumb || null, r: null, cands: pool, sel: -1, variant: e.variant || 'n', fix: t.dataset.fix};
+    renderScan(); $('#scan').scrollIntoView({behavior: 'smooth', block: 'start'});
+  }
   else if (t.dataset.act === 'add' && sc && sc.cands[sc.sel]) {
     if (S.trade) { addToTrade(sc.cands[sc.sel], sc.variant, sc); S.scan = null; $('#search').value = ''; renderScan(); $('#trade').scrollIntoView({behavior: 'smooth', block: 'start'}); return; }
     addCard(sc.cands[sc.sel], sc.variant, sc);
