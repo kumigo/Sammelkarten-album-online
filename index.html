@@ -301,6 +301,19 @@ label.lbl{font-size:13px;font-weight:600;display:flex;flex-direction:column;gap:
   .kb-yellow{align-self:flex-end;width:44px;height:44px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#FFF27A,#F2C200 70%);border:3px solid #5E0A14;box-shadow:0 3px 0 #5E0A14;color:#4A3A00;font-size:9px!important}
 }
 </style>
+<style>
+.wrap .actions,#liveBtn{display:none!important}
+.casekeys{max-width:640px;margin:0 auto;display:flex;justify-content:space-around;align-items:flex-end;padding:0 12px 10px}
+.casekeys button{appearance:none;background:none;border:0;padding:4px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;color:#FFE3E6;font:800 11px/1 var(--font-body,inherit);-webkit-tap-highlight-color:transparent;min-width:64px}
+.casekeys button:active i{transform:translateY(2px);box-shadow:none}
+.casekeys i{display:block;border:3px solid #5E0A14;box-shadow:0 3px 0 #3A050C}
+.ck-round{width:40px;height:40px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#555,#151515 70%)}
+.ck-green{width:52px;height:30px;border-radius:7px;background:#5BC85B;border-color:#2E7A33!important;box-shadow:0 3px 0 #1F5A23!important}
+.ck-yellow{width:36px;height:36px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#FFF27A,#F2C200 70%)}
+.ck-black{width:52px;height:30px;border-radius:6px;background:#1C1C1C}
+.top .in{padding-bottom:8px!important}
+@media (min-width:1270px){.casekeys{display:none}}
+</style>
 </head>
 <body>
 <div id="intro" class="intro" hidden>
@@ -361,6 +374,12 @@ label.lbl{font-size:13px;font-weight:600;display:flex;flex-direction:column;gap:
     <div class="total" id="total">0,00 €</div>
     <div class="sub">Gesamtwert</div>
   </div>
+</div>
+<div class="casekeys" aria-label="Pokédex-Tasten">
+  <button type="button" data-k="foto"><i class="ck-round"></i><span>Foto</span></button>
+  <button type="button" data-k="serie"><i class="ck-green"></i><span>Serien-Scan</span></button>
+  <button type="button" data-k="gal"><i class="ck-yellow"></i><span>Galerie</span></button>
+  <button type="button" data-k="trade"><i class="ck-black"></i><span>Tausch</span></button>
 </div></header>
 
 <main class="wrap">
@@ -842,7 +861,7 @@ function render() {
   else rows.sort((a, b) => String(a[1].printed || a[1].name).localeCompare(String(b[1].printed || b[1].name), 'de'));
   const b = $('#binder');
   if (!all.length) {
-    b.innerHTML = `<div class="empty"><div class="slots"><i></i><i></i><i></i></div><b style="color:var(--ink)">Dein Sammelbuch ist noch leer</b><span>Tippe auf <b>Karte fotografieren</b> und halte die Karte gerade ins Bild. Sie landet hier mit ihrem aktuellen Cardmarket-Wert.</span></div>`;
+    b.innerHTML = `<div class="empty"><div class="slots"><i></i><i></i><i></i></div><b style="color:var(--ink)">Dein Sammelbuch ist noch leer</b><span>Tippe oben auf den schwarzen <b>Foto</b>-Knopf und halte die Karte gerade ins Bild. Sie landet hier mit ihrem aktuellen Cardmarket-Wert.</span></div>`;
   } else {
     b.innerHTML = rows.map(([id, e]) => {
       const unit = priceOf(e.idProduct, e.variant), v = rowValue(e);
@@ -1228,7 +1247,7 @@ function syncSide() {
   for (const b of document.querySelectorAll('.kb-white button')) b.setAttribute('aria-pressed', String(S.view === b.dataset.k));
 }
 function goGen(g) { setView('dex'); S.gen = g === 'x' ? 'x' : +g; S.dexSel = null; renderDex(); syncSide(); $('.dextabs').scrollIntoView({behavior: 'smooth', block: 'start'}); }
-for (const side of document.querySelectorAll('.dexside')) side.addEventListener('click', e => {
+for (const side of document.querySelectorAll('.dexside, .casekeys')) side.addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
   if (b.dataset.g) return goGen(b.dataset.g);
   const k = b.dataset.k;
