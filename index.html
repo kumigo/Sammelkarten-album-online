@@ -346,6 +346,15 @@ label.lbl{font-size:13px;font-weight:600;display:flex;flex-direction:column;gap:
   .kb-yellow{width:62px;height:62px;font-size:11px!important}
 }
 </style>
+<style>
+.wrap::before{display:none}
+.menudots{position:absolute;top:-25px;left:50%;transform:translateX(-50%);display:flex;gap:11px;padding:6px 10px;background:none;border:0;cursor:pointer;z-index:3}
+.menudots i{display:block;width:10px;height:10px;border-radius:50%;background:#E3202F;box-shadow:0 0 0 2px rgba(0,0,0,.15)}
+.menudots[aria-expanded="true"] i{background:#5BD38E}
+#storeInfo:empty{display:none}
+#storeInfo{margin-top:10px;background:var(--glass);border-radius:14px;padding:10px 14px;font-size:14px}
+#menu{margin-top:8px}
+</style>
 </head>
 <body>
 <div id="intro" class="intro" hidden>
@@ -410,11 +419,22 @@ label.lbl{font-size:13px;font-weight:600;display:flex;flex-direction:column;gap:
 <div class="casekeys" aria-label="Pokédex-Tasten">
   <button type="button" data-k="foto"><i class="ck-round"></i><span>Foto</span></button>
   <button type="button" data-k="serie"><i class="ck-green"></i><span>Serien-Scan</span></button>
-  <button type="button" data-k="gal"><i class="ck-yellow"></i><span>Galerie</span></button>
+  <button type="button" data-k="cards"><i class="ck-yellow"></i><span>Meine Karten</span></button>
   <button type="button" data-k="trade"><i class="ck-black"></i><span>Tausch</span></button>
 </div></header>
 
 <main class="wrap">
+  <button type="button" class="menudots" id="menuBtn" aria-label="Menü: Backup und Einstellungen" aria-expanded="false"><i></i><i></i></button>
+  <footer class="foot" id="menu" hidden>
+    <div class="line"><span id="dataInfo">Kartendaten werden geladen …</span></div>
+    <div class="btns">
+      <button class="btn small" type="button" id="exportBtn">Backup speichern</button>
+      <button class="btn small" type="button" id="soundTest">Ton testen</button>
+      <label class="btn small" for="importFile">Backup laden</label>
+      <input type="file" id="importFile" accept="application/json,.json">
+    </div>
+    <p class="note" style="margin:0">Deine Sammlung wird nur auf diesem Gerät gespeichert. Speichere ab und zu ein Backup.</p>
+  </footer>
   <section>
     <div class="actions">
       <label class="btn primary" for="cam">Karte fotografieren</label>
@@ -427,7 +447,8 @@ label.lbl{font-size:13px;font-weight:600;display:flex;flex-direction:column;gap:
     <div style="margin-top:10px">
       <input class="field" id="search" type="search" placeholder="Karte suchen, z. B. Charizard ex" autocomplete="off" enterkeyhint="search">
     </div>
-    <p class="note" id="camNote">Tipp: Karte gerade und formatfüllend fotografieren, ohne Spiegelung. Die Erkennung läuft kostenlos direkt auf deinem Handy.</p>
+    <div id="storeInfo" aria-live="polite"></div>
+    <p class="note" id="camNote" hidden>Tipp: Karte gerade und formatfüllend fotografieren, ohne Spiegelung. Die Erkennung läuft kostenlos direkt auf deinem Handy.</p>
   </section>
 
   <section class="panel" id="scan" hidden aria-live="polite"></section>
@@ -461,16 +482,6 @@ label.lbl{font-size:13px;font-weight:600;display:flex;flex-direction:column;gap:
     </div>
   </section>
 
-  <footer class="foot">
-    <div class="line"><span id="dataInfo">Kartendaten werden geladen …</span></div>
-    <div class="btns">
-      <button class="btn small" type="button" id="exportBtn">Backup speichern</button>
-      <button class="btn small" type="button" id="soundTest">Ton testen</button>
-      <label class="btn small" for="importFile">Backup laden</label>
-      <input type="file" id="importFile" accept="application/json,.json">
-    </div>
-    <div id="storeInfo">Deine Sammlung wird auf diesem Gerät gespeichert. Speichere ab und zu ein Backup.</div>
-  </footer>
 </main>
 <aside class="dexside dl" aria-label="Pokédex-Tasten links">
   <button type="button" class="kb-round" data-k="foto" title="Karte fotografieren"><span>Foto</span></button>
@@ -1072,6 +1083,8 @@ let st; $('#search').addEventListener('input', e => { clearTimeout(st); st = set
 $('#filter').addEventListener('input', e => { S.filter = e.target.value; render(); });
 $('#sort').addEventListener('change', e => { S.sort = e.target.value; render(); });
 $('#exportBtn').addEventListener('click', exportBackup);
+{ let tm; new MutationObserver(() => { clearTimeout(tm); const el = $('#storeInfo'); if (el.querySelector('.ok') && !el.querySelector('.err')) tm = setTimeout(() => { el.innerHTML = ''; }, 7000); }).observe($('#storeInfo'), {childList: true}); }
+$('#menuBtn').addEventListener('click', () => { const m = $('#menu'), open = m.hidden; m.hidden = !open; $('#menuBtn').setAttribute('aria-expanded', String(open)); });
 $('#soundTest').addEventListener('click', () => { const n = (soundTestN = (soundTestN + 1) % 4); verdict([2, 7, 15, 50][n]); });
 let soundTestN = 3;
 $('#importFile').addEventListener('change', e => { const f = e.target.files[0]; e.target.value = ''; if (f) importBackup(f); });
