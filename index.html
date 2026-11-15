@@ -267,6 +267,7 @@ label.lbl{font-size:13px;font-weight:600;display:flex;flex-direction:column;gap:
 .livelist img{width:30px;height:42px;object-fit:cover;border-radius:4px;flex:none}
 .livelist .li span{flex:1;min-width:0;font-size:14px}
 .livelist .li.bad{opacity:.7}
+.ltag{display:inline-block;margin-top:3px;font-size:12px;padding:2px 8px;border-radius:99px}.ltag.new{background:var(--good);color:#06301A}.ltag.dup{background:var(--sun);color:#3A2E00}
 </style>
 <style>
 .dexside{display:none}
@@ -1247,7 +1248,7 @@ function renderLive() {
   el.hidden = false;
   $('#liveStat').textContent = L.status;
   const g = el.querySelector('.guide'); g.className = 'guide' + (L.busy ? ' busy' : L.flash ? ' ok' : '');
-  $('#liveList').innerHTML = L.log.slice().reverse().map((x, i) => `<div class="li${x.ok ? '' : ' bad'}">${x.thumb ? `<img src="${x.thumb}" alt="">` : ''}<span>${esc(x.text)}</span>${x.ok ? `<button class="btn small ghost" type="button" data-lundo="${L.log.length - 1 - i}">Rückgängig</button>` : ''}</div>`).join('');
+  $('#liveList').innerHTML = L.log.slice().reverse().map((x, i) => `<div class="li${x.ok ? '' : ' bad'}">${x.thumb ? `<img src="${x.thumb}" alt="">` : ''}<span>${esc(x.text)}${x.tag ? '<br>' + x.tag : ''}</span>${x.ok ? `<button class="btn small ghost" type="button" data-lundo="${L.log.length - 1 - i}">Rückgängig</button>` : ''}</div>`).join('');
 }
 async function startLive() {
   if (L.on) return;
@@ -1291,10 +1292,12 @@ async function tickLive() {
     const r = await identify(c, x => { L.status = x; renderLive(); });
     const best = r.is_card && S.idx ? candidatesFor(r)[0] : null;
     if (best && L.on) {
-      const variant = 'n'; addCard(best, variant, {thumb, r});
+      const variant = 'n', dn = dexOf(best.name), newMon = dn && !dexCaught().has(dn);
+      addCard(best, variant, {thumb, r});
       const had = (S.coll.get(`${best.id}-${variant}`) || {}).count || 1;
-      L.log.push({ok: true, id: `${best.id}-${variant}`, thumb, text: `${r.name_printed || best.base}${r.number ? ' · ' + r.number : ''} · ${fmt(priceOf(best.id, variant))}${had > 1 ? ` (jetzt ${had}×)` : ''}`});
-      L.status = `Erkannt: ${r.name_printed || best.base}. Nächste Karte!`; L.flash = true; setTimeout(() => { L.flash = false; L.on && renderLive(); }, 900); const pr = priceOf(best.id, variant); if (pr != null) verdict(pr); else beep(true);
+      const tag = had > 1 ? `<b class="ltag dup">Doppelt · jetzt ${had}×</b>` : newMon ? '<b class="ltag new">Neu im Pokédex!</b>' : '<b class="ltag new">Neu</b>';
+      L.log.push({ok: true, id: `${best.id}-${variant}`, thumb, tag, text: `${r.name_printed || best.base}${r.number ? ' · ' + r.number : ''} · ${fmt(priceOf(best.id, variant))}`});
+      L.status = `Erkannt: ${r.name_printed || best.base} · ${had > 1 ? 'hattest du schon' : 'neu'}. Nächste Karte!`; L.flash = true; setTimeout(() => { L.flash = false; L.on && renderLive(); }, 900); const pr = priceOf(best.id, variant); if (pr != null) verdict(pr); else beep(true);
     } else if (L.on) {
       L.log.push({ok: false, thumb, text: 'Nicht erkannt' + (r.read ? `: „${r.read.slice(0, 40)}“` : '') + '. Später über die Suche eintragen.'});
       L.status = 'Nicht erkannt. Nimm die nächste Karte.'; beep(false);
