@@ -11,7 +11,7 @@
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@500;600;700;800;900&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Luckiest+Guy&family=Nunito:wght@500;600;700;800;900&display=swap">
 <style>
 /* Layout: one phone-width column; sticky value bar on top, scan panel, then the binder list. */
 :root{
@@ -109,6 +109,7 @@ code{font-size:12.5px;background:var(--sunk);padding:1px 5px;border-radius:4px;w
   --sky:#2C5BC4; --sky-2:#1C3F93; --sun:#FFCB05; --sun-dark:#C79A00;
   --font-display:"Lilita One", "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif;
   --font-body:"Nunito", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-logo:"Luckiest Guy", "Lilita One", "Arial Black", system-ui, sans-serif;
   --r:14px;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
@@ -124,7 +125,7 @@ body{font-weight:600;background:var(--bg) radial-gradient(circle at 1px 1px, var
 body::before{background:var(--sky-2)}
 .top{background:linear-gradient(160deg,var(--sky),var(--sky-2));border-bottom:4px solid var(--sun)}
 .top .in{align-items:center;padding-block:14px 16px}
-.title{appearance:none;background:none;border:0;padding:0;margin:0;cursor:pointer;text-align:left;font-family:var(--font-display);font-size:clamp(26px,8vw,40px);line-height:1.05;color:var(--sun);-webkit-text-stroke:6px var(--sky-2);paint-order:stroke fill;letter-spacing:.01em;text-shadow:0 4px 0 var(--sky-2);word-break:break-word;min-width:0}
+.title{appearance:none;background:none;border:0;padding:0;margin:0;cursor:pointer;text-align:left;font-family:var(--font-logo);font-size:clamp(22px,6.6vw,38px);line-height:1.1;color:var(--sun);-webkit-text-stroke:7px #3466AF;paint-order:stroke fill;letter-spacing:.03em;text-shadow:0 4px 0 #1C3F93;word-break:normal;overflow-wrap:break-word;min-width:0;transform:rotate(-2deg);transform-origin:left center}
 .title:focus-visible{outline:3px solid #fff;outline-offset:4px;border-radius:6px}
 .top .sub{color:#DCE6FF}
 .top .meta{display:flex;flex-direction:column;gap:6px;min-width:0}
@@ -167,11 +168,11 @@ label.lbl{font-size:13px;font-weight:600;display:flex;flex-direction:column;gap:
 .intro.out{opacity:0}
 .stage{flex:1;display:flex;align-items:flex-end;justify-content:center;position:relative;min-height:0}
 .spot{position:absolute;bottom:4%;width:min(70vw,300px);aspect-ratio:3/1;border-radius:50%;background:#DFF5D6;border:4px solid #4E9F4D}
-.prof{position:relative;width:min(62vw,280px);height:auto;max-height:52vh;margin-bottom:6%;animation:hop 2.4s ease-in-out infinite}
+.prof{position:relative;object-fit:contain;width:min(62vw,280px);height:auto;max-height:52vh;margin-bottom:6%;animation:hop 2.4s ease-in-out infinite}
 @keyframes hop{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
 @media (prefers-reduced-motion:reduce){.prof{animation:none}.intro{transition:none}}
 .dialog{position:relative;max-width:640px;width:100%;margin:0 auto;box-sizing:border-box;background:#FFFFFF;color:#16244F;border:5px solid #1C2B5A;border-radius:18px;box-shadow:inset 0 0 0 4px #FFCB05,0 6px 0 #1C2B5A;padding:18px 18px 22px;min-height:150px;display:flex;flex-direction:column;gap:12px;font-family:var(--font-body)}
-.speaker{position:absolute;top:-18px;left:16px;background:#E3350D;color:#fff;font-family:var(--font-display);font-size:16px;padding:4px 12px;border-radius:10px;border:3px solid #1C2B5A}
+.speaker{position:absolute;top:-18px;left:16px;background:#E3350D;color:#fff;font-family:var(--font-logo);letter-spacing:.04em;font-size:16px;padding:4px 12px;border-radius:10px;border:3px solid #1C2B5A}
 .dialog p{margin:6px 0 0;font-size:18px;font-weight:800;line-height:1.45;min-height:3em}
 .dialog form{display:flex;gap:8px;flex-wrap:wrap}
 .dialog form .field{flex:1 1 160px;min-width:0;background:#fff;color:#16244F;border:3px solid #1C2B5A;font-weight:800;font-size:17px}
@@ -184,7 +185,8 @@ label.lbl{font-size:13px;font-weight:600;display:flex;flex-direction:column;gap:
 <div id="intro" class="intro" hidden>
   <div class="stage">
     <div class="spot"></div>
-    <svg class="prof" viewBox="0 0 220 300" role="img" aria-label="Professor Kastanie">
+    <img class="prof" id="profImg" alt="Professor" hidden>
+    <svg class="prof" id="profSvg" viewBox="0 0 220 300" role="img" aria-label="Professor Kastanie">
       <ellipse cx="110" cy="292" rx="80" ry="8" fill="rgba(0,0,0,.18)"/>
       <path d="M40 300 C40 210 60 180 110 176 C160 180 180 210 180 300 Z" fill="#F7F9FF" stroke="#1C2B5A" stroke-width="5"/>
       <path d="M92 182 L110 240 L128 182 Z" fill="#3A7BD5" stroke="#1C2B5A" stroke-width="4" stroke-linejoin="round"/>
@@ -207,7 +209,7 @@ label.lbl{font-size:13px;font-weight:600;display:flex;flex-direction:column;gap:
     </svg>
   </div>
   <div class="dialog" id="dialog" role="dialog" aria-live="polite" aria-label="Begrüßung">
-    <div class="speaker">Prof. Kastanie</div>
+    <div class="speaker" id="speaker">Prof. Kastanie</div>
     <p id="dlgText"></p>
     <form id="nameForm" hidden>
       <label for="introName" class="vh">Dein Name</label>
@@ -267,6 +269,12 @@ label.lbl{font-size:13px;font-weight:600;display:flex;flex-direction:column;gap:
     <label class="lbl" for="ownerName">Dein Name im Titel
       <span class="namefield"><input class="field" id="ownerName" type="text" maxlength="24" placeholder="z. B. Chris" autocomplete="nickname"><button class="btn small" type="button" id="saveName">Übernehmen</button></span>
     </label>
+    <div class="lbl">Professor
+      <span class="btns"><label class="btn small" for="profFile">Eigenes Bild wählen</label><button class="btn small ghost" type="button" id="profReset" hidden>Standard</button><button class="btn small ghost" type="button" id="replayIntro">Begrüßung ansehen</button></span>
+      <input type="file" id="profFile" accept="image/*">
+      <span class="namefield"><input class="field" id="profName" type="text" maxlength="30" placeholder="Name des Professors, z. B. Kastanie" autocomplete="off"><button class="btn small" type="button" id="saveProf">Übernehmen</button></span>
+      <span class="sub">Bild und Name bleiben nur auf deinem Handy und werden nirgends hochgeladen.</span>
+    </div>
     <div class="line"><span id="dataInfo">Kartendaten werden geladen …</span></div>
     <div class="btns">
       <button class="btn small" type="button" id="exportBtn">Backup speichern</button>
@@ -723,9 +731,37 @@ $('#ownerName').addEventListener('keydown', e => { if (e.key === 'Enter') $('#sa
 $('#title').addEventListener('click', () => { const f = $('#ownerName'); f.scrollIntoView({behavior: 'smooth', block: 'center'}); setTimeout(() => f.focus(), 300); });
 applyName();
 
+/* ---------- Eigenes Professor-Bild (nur auf diesem Gerät) ---------- */
+async function applyProf() {
+  let url = null;
+  try { url = await idbGet('prof'); } catch (e) {}
+  $('#profImg').hidden = !url; $('#profSvg').style.display = url ? 'none' : '';
+  if (url) $('#profImg').src = url;
+  $('#profReset').hidden = !url;
+}
+$('#profFile').addEventListener('change', async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  try {
+    const img = await loadImg(f);
+    const c = document.createElement('canvas'); const s = Math.min(1, 700 / Math.max(img.naturalWidth, img.naturalHeight));
+    c.width = Math.round(img.naturalWidth * s); c.height = Math.round(img.naturalHeight * s);
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    await idbSet('prof', c.toDataURL('image/png'));
+    await applyProf();
+    $('#storeInfo').innerHTML = '<span class="ok">Professor-Bild gespeichert. Tipp auf „Begrüßung ansehen“.</span>';
+  } catch (err) { $('#storeInfo').innerHTML = '<span class="err">Das Bild konnte nicht gelesen werden.</span>'; }
+});
+$('#profReset').addEventListener('click', async () => { try { await idbSet('prof', null); } catch (e) {} applyProf(); });
+$('#replayIntro').addEventListener('click', () => { window.scrollTo(0, 0); runIntro(); });
+function profName() { try { return localStorage.getItem('sb-prof') || 'Kastanie'; } catch (e) { return 'Kastanie'; } }
+$('#profName').value = profName() === 'Kastanie' ? '' : profName();
+$('#saveProf').addEventListener('click', () => { const v = $('#profName').value.trim().replace(/^prof(essor)?\.?\s+/i, ''); try { v ? localStorage.setItem('sb-prof', v) : localStorage.removeItem('sb-prof'); } catch (e) {} $('#storeInfo').innerHTML = '<span class="ok">Professor heißt jetzt ' + esc(profName()) + '.</span>'; });
+applyProf();
+
 /* ---------- Begrüßung durch den Professor (nur beim ersten Öffnen) ---------- */
 function runIntro() {
   const intro = $('#intro'), text = $('#dlgText'), next = $('#dlgNext'), form = $('#nameForm');
+  $('#speaker').textContent = 'Prof. ' + profName();
   const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
   let typing = null, full = '';
   const say = (s, onDone) => {
@@ -735,7 +771,7 @@ function runIntro() {
   };
   const finishTyping = () => { if (typing) { clearInterval(typing); typing = null; text.textContent = full; return true; } return false; };
   const lines = [
-    'Hallo! Herzlich willkommen in der Welt der Sammelkarten! Ich bin Professor Kastanie.',
+    `Hallo! Herzlich willkommen in der Welt der Sammelkarten! Ich bin Professor ${profName()}.`,
     'Hier fotografierst du deine Karten, und ich sage dir, was sie bei Cardmarket wert sind.',
     'Willkommen, junger Trainer! Wie ist dein Name? Dann lege ich deinen Kartendex an.',
   ];
@@ -746,8 +782,8 @@ function runIntro() {
   };
   const showForm = () => { next.hidden = true; form.hidden = false; setTimeout(() => $('#introName').focus(), 50); };
   intro.hidden = false; next.hidden = false; form.hidden = true;
-  intro.addEventListener('click', e => { if (!e.target.closest('form')) advance(); });
-  form.addEventListener('submit', e => {
+  intro.onclick = e => { if (!e.target.closest('form')) advance(); };
+  form.onsubmit = e => {
     e.preventDefault();
     const n = $('#introName').value.trim();
     if (!n) { $('#introName').focus(); return; }
@@ -756,7 +792,8 @@ function runIntro() {
     say(`Super, ${n}! Dein Kartendex ist bereit. Viel Spaß beim Sammeln!`, () => {
       setTimeout(() => { intro.classList.add('out'); setTimeout(() => { intro.hidden = true; intro.classList.remove('out'); }, calm ? 0 : 500); }, calm ? 600 : 1400);
     });
-  });
+  };
+  $('#introName').value = ownerName();
   advance();
 }
 if (!ownerName()) runIntro();
