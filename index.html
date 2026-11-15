@@ -316,6 +316,7 @@ label.lbl{font-size:13px;font-weight:600;display:flex;flex-direction:column;gap:
 </style>
 <style>
 .verdict{position:fixed;left:50%;top:42%;transform:translate(-50%,-50%) scale(.6);z-index:50;pointer-events:none;opacity:0;transition:transform .25s cubic-bezier(.3,1.6,.5,1),opacity .2s;font-family:var(--font-logo);font-size:clamp(44px,14vw,96px);letter-spacing:.03em;color:#FFD84D;-webkit-text-stroke:8px #3466AF;paint-order:stroke fill;text-shadow:0 6px 0 #1C3F93;white-space:nowrap;text-align:center}
+.verdict.v2{font-size:clamp(34px,10.5vw,80px)}
 .verdict small{display:table;margin:8px auto 0;font:800 18px var(--font-body,inherit);-webkit-text-stroke:0;color:#fff;text-shadow:none;background:rgba(10,15,40,.82);padding:4px 12px;border-radius:99px}
 .verdict.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
 .verdict.v0{color:#B9A27A;-webkit-text-stroke-color:#4A3A22;text-shadow:0 6px 0 #2B210F}
@@ -1241,7 +1242,7 @@ function renderLive() {
     el.innerHTML = `<div class="listhead"><h2>Serien-Scan</h2><button class="btn small ghost" type="button" data-lstop="1">Beenden</button></div>
       <div class="livebox"><video playsinline muted autoplay></video><div class="guide"></div></div>
       <div class="livestat" id="liveStat"></div><div class="livelist" id="liveList"></div>
-      <p class="note" style="margin:0">Leg das Handy fest über die Karten, z. B. auf eine Halterung. Jede neue Karte, die ruhig im Rahmen liegt, wird erkannt und automatisch eingetragen. Nach jeder erkannten Karte sagt die App den Wert an: Schmutz, Naja, Joa oder Jackpot. Ein tiefer Ton heißt nicht erkannt.</p>`;
+      <p class="note" style="margin:0">Leg das Handy fest über die Karten, z. B. auf eine Halterung. Jede neue Karte, die ruhig im Rahmen liegt, wird erkannt und automatisch eingetragen. Nach jeder erkannten Karte sagt die App den Wert an: Schmutz, Naja, Schon mal gut oder Jackpot. Ein tiefer Ton heißt nicht erkannt.</p>`;
   }
   el.hidden = false;
   $('#liveStat').textContent = L.status;
@@ -1368,7 +1369,7 @@ function tones(seq, type = 'square') {
 const VERDICTS = [
   {max: 5, word: 'Schmutz', say: 'Schmutz.', seq: [[392, .18], [370, .18], [349, .18], [262, .5]], type: 'sawtooth'},
   {max: 10, word: 'Naja', say: 'Naja.', seq: [[523, .16], [440, .3]]},
-  {max: 20, word: 'Joa', say: 'Joa!', seq: [[523, .12], [659, .12], [784, .3]]},
+  {max: 20, word: 'Schon mal gut', say: 'Schon mal gut!', seq: [[523, .12], [659, .12], [784, .3]]},
   {max: Infinity, word: 'Jackpot!', say: 'Jackpot!', seq: [[523, .1], [659, .1], [784, .1], [1047, .2], [0, .05], [784, .1], [1047, .45]]},
 ];
 function verdict(price) {
