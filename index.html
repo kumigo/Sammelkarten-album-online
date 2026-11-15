@@ -38,7 +38,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .sub{font-size:12.5px;color:var(--muted)}
 .right{text-align:right}
 h2{font-family:var(--font-display);font-weight:600;font-size:18px;margin:0;letter-spacing:.02em;text-wrap:balance}
-.actions{display:grid;grid-template-columns:1fr auto;gap:10px;margin-top:16px}
+.actions{display:grid;grid-template-columns:1fr auto auto;gap:10px;margin-top:16px}
 .btn{appearance:none;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:600 15px/1 var(--font-body);padding:13px 16px;border-radius:var(--r);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;min-height:46px}
 .btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-family:var(--font-display);font-size:17px;letter-spacing:.03em}
 .btn.small{padding:8px 12px;min-height:36px;font-size:14px}
@@ -125,7 +125,7 @@ body{font-weight:600;background:var(--bg) radial-gradient(circle at 1px 1px, var
 body::before{background:var(--sky-2)}
 .top{background:linear-gradient(160deg,var(--sky),var(--sky-2));border-bottom:4px solid var(--sun)}
 .top .in{align-items:center;padding-block:14px 16px}
-.title{appearance:none;background:none;border:0;padding:0;margin:0;cursor:pointer;text-align:left;font-family:var(--font-logo);font-size:clamp(22px,6.6vw,38px);line-height:1.1;color:var(--sun);-webkit-text-stroke:7px #3466AF;paint-order:stroke fill;letter-spacing:.03em;text-shadow:0 4px 0 #1C3F93;word-break:normal;overflow-wrap:break-word;min-width:0;transform:rotate(-2deg);transform-origin:left center}
+.title{appearance:none;background:none;border:0;padding:0;margin:0;font-weight:400;text-align:left;font-family:var(--font-logo);font-size:clamp(22px,6.6vw,38px);line-height:1.1;color:var(--sun);-webkit-text-stroke:7px #3466AF;paint-order:stroke fill;letter-spacing:.03em;text-shadow:0 4px 0 #1C3F93;word-break:normal;overflow-wrap:break-word;min-width:0;transform:rotate(-2deg);transform-origin:left center}
 .title:focus-visible{outline:3px solid #fff;outline-offset:4px;border-radius:6px}
 .top .sub{color:#DCE6FF}
 .top .meta{display:flex;flex-direction:column;gap:6px;min-width:0}
@@ -150,6 +150,22 @@ h2{font-family:var(--font-display);font-weight:400;font-size:22px;letter-spacing
 .kv div{border:2px solid var(--line)}
 .empty{background:var(--surface);border:3px dashed var(--sky)}
 .empty .slots i{border:2px solid var(--sun);background:var(--sunk)}
+.trade-btn{background:var(--sun);border-color:var(--sun-dark);color:#16244F;box-shadow:0 5px 0 var(--sun-dark)}
+.tsides{display:grid;grid-template-columns:1fr;gap:12px}
+@media (min-width:560px){.tsides{grid-template-columns:1fr 1fr}}
+.tside{background:var(--sunk);border:2px solid var(--line);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.tside h3{margin:0;font-family:var(--font-display);font-weight:400;font-size:19px}
+.tside.give h3{color:var(--accent)}.tside.get h3{color:var(--good)}
+.tside.active{border-color:var(--sky);box-shadow:0 0 0 3px var(--sky) inset}
+.titem{display:grid;grid-template-columns:36px minmax(0,1fr) auto auto;gap:8px;align-items:center;font-size:14px}
+.titem img,.titem .ph{width:36px;aspect-ratio:63/88;border-radius:3px;object-fit:cover;background:var(--surface);border:1px solid var(--line)}
+.titem .x{appearance:none;border:0;background:none;color:var(--muted);font-size:18px;cursor:pointer;padding:4px}
+.tsum{display:flex;justify-content:space-between;font-weight:800;border-top:2px dashed var(--line);padding-top:6px}
+.tresult{border-radius:14px;padding:12px 14px;text-align:center;font-weight:800;background:var(--sunk);border:3px solid var(--line)}
+.tresult b{display:block;font-family:var(--font-display);font-weight:400;font-size:30px}
+.tresult.plus{border-color:var(--good)}.tresult.plus b{color:var(--good)}
+.tresult.minus{border-color:var(--accent)}.tresult.minus b{color:var(--accent)}
+.tside select.field{width:100%;min-height:40px;padding:8px 10px;font-size:14px}
 .namefield{display:flex;gap:8px;align-items:center}
 .namefield .field{flex:1;min-width:0}
 </style>
@@ -238,7 +254,7 @@ label.lbl{font-size:13px;font-weight:600;display:flex;flex-direction:column;gap:
 
 <header class="top"><div class="in">
   <div class="meta">
-    <button class="title" type="button" id="title" title="Namen ändern">Mein Sammelbuch</button>
+    <h1 class="title" id="title">Mein Sammelbuch</h1>
     <div class="sub" id="countLine">Noch keine Karten</div>
   </div>
   <div class="worth">
@@ -252,6 +268,7 @@ label.lbl{font-size:13px;font-weight:600;display:flex;flex-direction:column;gap:
     <div class="actions">
       <label class="btn primary" for="cam">Karte fotografieren</label>
       <label class="btn" for="gal">Galerie</label>
+      <button class="btn trade-btn" type="button" id="tradeBtn">Tausch</button>
     </div>
     <input type="file" id="cam" accept="image/*" capture="environment">
     <input type="file" id="gal" accept="image/*">
@@ -262,6 +279,8 @@ label.lbl{font-size:13px;font-weight:600;display:flex;flex-direction:column;gap:
   </section>
 
   <section class="panel" id="scan" hidden aria-live="polite"></section>
+
+  <section class="panel" id="trade" hidden aria-live="polite"></section>
 
   <section class="panel" id="setup" hidden></section>
 
@@ -282,10 +301,6 @@ label.lbl{font-size:13px;font-weight:600;display:flex;flex-direction:column;gap:
   </section>
 
   <footer class="foot">
-    <label class="lbl" for="ownerName">Dein Name im Titel
-      <span class="namefield"><input class="field" id="ownerName" type="text" maxlength="24" placeholder="z. B. Chris" autocomplete="nickname"><button class="btn small" type="button" id="saveName">Übernehmen</button></span>
-    </label>
-    <div class="btns"><button class="btn small" type="button" id="replayIntro">Begrüßung nochmal ansehen</button></div>
     <div class="line"><span id="dataInfo">Kartendaten werden geladen …</span></div>
     <div class="btns">
       <button class="btn small" type="button" id="exportBtn">Backup speichern</button>
@@ -659,7 +674,7 @@ function renderScan() {
         <div><span>Ø 30 Tage</span><strong>${fmt(pd && pd.avg30)}</strong></div>
       </div>
       <div class="row-actions">
-        <button class="btn primary" type="button" data-act="add">${own ? 'Noch eine hinzufügen' : 'Zur Sammlung hinzufügen'}</button>
+        <button class="btn primary" type="button" data-act="add">${S.trade ? (S.trade.side === 'give' ? 'Zu „Ich gebe“' : 'Zu „Ich bekomme“') : own ? 'Noch eine hinzufügen' : 'Zur Sammlung hinzufügen'}</button>
         <a class="btn small" href="${cmLink(it.base)}" target="_blank" rel="noopener">Auf Cardmarket</a>
         ${close}
       </div>`;
@@ -707,7 +722,72 @@ function render() {
   }
   dataLine();
   if (S.scan && S.scan.state !== 'reading') renderScan();
+  if (S.trade) renderTrade();
 }
+
+/* ---------- Tausch-Rechner ---------- */
+function tradeValue(list) { let s = 0, miss = 0; for (const t of list) { const p = priceOf(t.id, t.variant); if (p == null) miss++; else s += p; } return {s, miss}; }
+function openTrade() { if (!S.trade) S.trade = {give: [], get: [], side: 'give', confirm: false}; renderTrade(); $('#trade').scrollIntoView({behavior: 'smooth', block: 'start'}); }
+function addToTrade(it, variant, scan) {
+  const side = S.trade.side;
+  S.trade[side].push({id: it.id, name: it.name, printed: (scan && scan.r && scan.r.name_printed) || it.base, variant, thumb: (scan && scan.thumb) || ''});
+  S.trade.confirm = false; renderTrade();
+}
+function renderTrade() {
+  const el = $('#trade'), T = S.trade;
+  if (!T) { el.hidden = true; el.innerHTML = ''; return; }
+  el.hidden = false;
+  const side = (key, title) => {
+    const list = T[key], v = tradeValue(list);
+    const items = list.map((t, i) => `<div class="titem">${t.thumb ? `<img src="${t.thumb}" alt="">` : '<span class="ph"></span>'}<span style="min-width:0">${esc(t.printed)}${t.variant === 'r' ? ' <span class="sub">(Reverse)</span>' : ''}</span><b>${fmt(priceOf(t.id, t.variant))}</b><button class="x" type="button" data-trm="${key}:${i}" aria-label="Entfernen">×</button></div>`).join('') || '<span class="sub">Noch keine Karte.</span>';
+    const own = key === 'give' && S.coll.size ? `<select class="field" data-tcoll="1" aria-label="Aus meiner Sammlung"><option value="">Aus meiner Sammlung wählen …</option>${[...S.coll].map(([id, e]) => `<option value="${esc(id)}">${esc(e.printed || e.name)}${e.variant === 'r' ? ' (Reverse)' : ''} · ${fmt(priceOf(e.idProduct, e.variant))}</option>`).join('')}</select>` : '';
+    return `<div class="tside ${key}${T.side === key ? ' active' : ''}"><h3>${title}</h3>${items}
+      <div class="row-actions"><button class="btn small" type="button" data-tphoto="${key}">Fotografieren</button><button class="btn small" type="button" data-tsearch="${key}">Suchen</button></div>${own}
+      <div class="tsum"><span>Summe</span><span>${fmt(v.s)}${v.miss ? ` <span class="sub">(${v.miss} ohne Preis)</span>` : ''}</span></div></div>`;
+  };
+  const g = tradeValue(T.give).s, b = tradeValue(T.get).s, d = b - g;
+  let res = '';
+  if (T.give.length && T.get.length) {
+    const fair = Math.abs(d) <= Math.max(0.5, Math.max(g, b) * 0.05);
+    res = fair ? `<div class="tresult">Fairer Tausch<b>${fmt(Math.abs(d))} Unterschied</b></div>`
+      : d > 0 ? `<div class="tresult plus">Du bekommst mehr Wert<b>+${fmt(d)}</b></div>`
+      : `<div class="tresult minus">Du gibst mehr Wert ab<b>−${fmt(-d)}</b></div>`;
+  }
+  const apply = T.give.length || T.get.length ? (T.confirm
+    ? `<div class="row-actions"><button class="btn primary" type="button" data-tapply="2">Ja, Sammlung anpassen</button><button class="btn small ghost" type="button" data-tapply="0">Abbrechen</button></div><p class="note" style="margin:0">„Ich gebe“ wird aus deiner Sammlung entfernt, „Ich bekomme“ kommt dazu.</p>`
+    : `<div class="row-actions"><button class="btn" type="button" data-tapply="1">Tausch durchführen</button></div>`) : '';
+  el.innerHTML = `<div class="listhead"><h2>Tausch</h2><button class="btn small ghost" type="button" data-tclose="1">Schließen</button></div>
+    <div class="tsides">${side('give', 'Ich gebe')}${side('get', 'Ich bekomme')}</div>${res}${apply}`;
+}
+function applyTrade() {
+  const T = S.trade;
+  for (const t of T.give) {
+    const id = t.collId || `${t.id}-${t.variant}`; const ex = S.coll.get(id);
+    if (ex) { if ((ex.count || 0) <= 1) S.coll.delete(id); else S.coll.set(id, {...ex, count: ex.count - 1, updatedAt: Date.now()}); }
+  }
+  saveColl();
+  for (const t of T.get) { const it = S.idx && S.idx.byId.get(t.id); if (it) addCard(it, t.variant, {thumb: t.thumb, r: {name_printed: t.printed}}); }
+  S.trade = null; renderTrade(); render();
+  $('#storeInfo').innerHTML = '<span class="ok">Tausch übernommen. Deine Sammlung ist aktualisiert.</span>';
+}
+$('#tradeBtn').addEventListener('click', openTrade);
+$('#trade').addEventListener('change', e => {
+  if (!e.target.dataset.tcoll || !e.target.value) return;
+  const e2 = S.coll.get(e.target.value); if (!e2) return;
+  S.trade.give.push({id: e2.idProduct, name: e2.name, printed: e2.printed || e2.name, variant: e2.variant, thumb: e2.thumb || '', collId: e.target.value});
+  S.trade.confirm = false; renderTrade();
+});
+$('#trade').addEventListener('click', e => {
+  const t = e.target.closest('button'); if (!t) return;
+  const T = S.trade; if (!T) return;
+  if (t.dataset.tclose) { S.trade = null; renderTrade(); }
+  else if (t.dataset.tphoto) { T.side = t.dataset.tphoto; renderTrade(); $('#cam').click(); }
+  else if (t.dataset.tsearch) { T.side = t.dataset.tsearch; renderTrade(); window.scrollTo({top: 0, behavior: 'smooth'}); setTimeout(() => $('#search').focus(), 300); }
+  else if (t.dataset.trm) { const [k, i] = t.dataset.trm.split(':'); T[k].splice(+i, 1); T.confirm = false; renderTrade(); }
+  else if (t.dataset.tapply === '1') { T.confirm = true; renderTrade(); }
+  else if (t.dataset.tapply === '0') { T.confirm = false; renderTrade(); }
+  else if (t.dataset.tapply === '2') applyTrade();
+});
 
 /* ---------- Ereignisse ---------- */
 for (const id of ['cam', 'gal']) $('#' + id).addEventListener('change', e => { const f = e.target.files[0]; e.target.value = ''; $('#search').value = ''; handlePhoto(f); });
@@ -722,6 +802,7 @@ document.addEventListener('click', e => {
   if (t.dataset.act === 'close') { S.scan = null; $('#search').value = ''; renderScan(); }
   else if (t.dataset.act === 'reload') loadData();
   else if (t.dataset.act === 'add' && sc && sc.cands[sc.sel]) {
+    if (S.trade) { addToTrade(sc.cands[sc.sel], sc.variant, sc); S.scan = null; $('#search').value = ''; renderScan(); $('#trade').scrollIntoView({behavior: 'smooth', block: 'start'}); return; }
     addCard(sc.cands[sc.sel], sc.variant, sc);
     t.textContent = 'Hinzugefügt ✓'; t.disabled = true;
     setTimeout(() => { if (S.scan === sc) { S.scan = null; $('#search').value = ''; renderScan(); } }, 1100);
@@ -736,10 +817,7 @@ document.addEventListener('click', e => {
 /* ---------- Name im Titel ---------- */
 function ownerName() { try { return localStorage.getItem('sb-name') || ''; } catch (e) { return ''; } }
 function titleFor(n) { n = n.trim(); if (!n) return 'Mein Sammelbuch'; return (/[sßxzß]$/i.test(n) ? n + '’' : n + 's') + ' Sammelbuch'; }
-function applyName() { const t = titleFor(ownerName()); $('#title').textContent = t; document.title = t; $('#ownerName').value = ownerName(); }
-$('#saveName').addEventListener('click', () => { try { localStorage.setItem('sb-name', $('#ownerName').value.trim()); } catch (e) {} applyName(); });
-$('#ownerName').addEventListener('keydown', e => { if (e.key === 'Enter') $('#saveName').click(); });
-$('#title').addEventListener('click', () => { const f = $('#ownerName'); f.scrollIntoView({behavior: 'smooth', block: 'center'}); setTimeout(() => f.focus(), 300); });
+function applyName() { const t = titleFor(ownerName()); $('#title').textContent = t; document.title = t; }
 applyName();
 
 /* ---------- Eigenes Professor-Bild (nur auf diesem Gerät) ---------- */
@@ -768,7 +846,6 @@ $('#profFile').addEventListener('change', async e => {
   } catch (err) { $('#profPanel .hint').textContent = 'Das Bild konnte nicht gelesen werden.'; }
 });
 $('#profReset').addEventListener('click', async () => { try { await idbSet('prof', null); } catch (e) {} applyProf(); });
-$('#replayIntro').addEventListener('click', () => { window.scrollTo(0, 0); runIntro(); });
 function profName() { const d = repoProf ? 'Eich' : 'Kastanie'; try { return localStorage.getItem('sb-prof') || d; } catch (e) { return d; } }
 $('#profName').value = profName() === 'Kastanie' ? '' : profName();
 $('#profEdit').addEventListener('click', e => { e.stopPropagation(); const pnl = $('#profPanel'); pnl.hidden = !pnl.hidden; $('#profEdit').setAttribute('aria-expanded', String(!pnl.hidden)); });
