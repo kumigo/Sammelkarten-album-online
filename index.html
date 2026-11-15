@@ -133,30 +133,10 @@ label.lbl{font-size:13px;font-weight:600;display:flex;flex-direction:column;gap:
     <div style="margin-top:10px">
       <input class="field" id="search" type="search" placeholder="Karte suchen, z. B. Charizard ex" autocomplete="off" enterkeyhint="search">
     </div>
-    <p class="note" id="camNote" hidden></p>
+    <p class="note" id="camNote">Tipp: Karte gerade und formatfüllend fotografieren, ohne Spiegelung. Die Erkennung läuft kostenlos direkt auf deinem Handy.</p>
   </section>
 
   <section class="panel" id="scan" hidden aria-live="polite"></section>
-
-  <section class="panel" id="settings" hidden>
-    <h2>Kartenerkennung einrichten</h2>
-    <p class="note">Die Fotos liest Claude über die Anthropic-API. Dafür brauchst du einen eigenen API-Schlüssel von <a href="https://platform.claude.com/settings/keys" target="_blank" rel="noopener">platform.claude.com</a>. Er wird nur auf diesem Gerät gespeichert. Ein Foto kostet etwa 1 bis 2 Cent.</p>
-    <label class="lbl" for="apiKey">API-Schlüssel
-      <input class="field" id="apiKey" type="password" placeholder="sk-ant-…" autocomplete="off">
-    </label>
-    <label class="lbl" for="model">Modell
-      <select class="field" id="model" style="width:100%">
-        <option value="claude-opus-5-5">Claude Opus 5.5 (genaueste Erkennung)</option>
-        <option value="claude-sonnet-5-5">Claude Sonnet 5.5 (günstiger)</option>
-        <option value="claude-haiku-5-5">Claude Haiku 5.5 (am günstigsten)</option>
-      </select>
-    </label>
-    <div class="row-actions">
-      <button class="btn primary" type="button" id="saveKey">Speichern</button>
-      <button class="btn small ghost" type="button" id="closeSettings">Schließen</button>
-    </div>
-    <p class="note" id="keyState"></p>
-  </section>
 
   <section class="panel" id="setup" hidden></section>
 
@@ -179,7 +159,6 @@ label.lbl{font-size:13px;font-weight:600;display:flex;flex-direction:column;gap:
   <footer class="foot">
     <div class="line"><span id="dataInfo">Kartendaten werden geladen …</span></div>
     <div class="btns">
-      <button class="btn small" type="button" id="openSettings">Einstellungen</button>
       <button class="btn small" type="button" id="exportBtn">Backup speichern</button>
       <label class="btn small" for="importFile">Backup laden</label>
       <input type="file" id="importFile" accept="application/json,.json">
@@ -218,13 +197,6 @@ function saveColl() {
   saving = saving.then(() => idbSet('karten', snapshot)).catch(e => { $('#storeInfo').innerHTML = `<span class="err">Speichern fehlgeschlagen: ${esc(e && e.message)}</span>`; });
   return saving;
 }
-const settings = {
-  get key() { try { return localStorage.getItem('sb-api-key') || ''; } catch (e) { return ''; } },
-  set key(v) { try { localStorage.setItem('sb-api-key', v); } catch (e) {} },
-  get model() { try { return localStorage.getItem('sb-model') || 'claude-opus-5-5'; } catch (e) { return 'claude-opus-5-5'; } },
-  set model(v) { try { localStorage.setItem('sb-model', v); } catch (e) {} },
-};
-
 /* ---------- Cardmarket-Daten (täglich per GitHub Action erzeugt) ---------- */
 function splitName(n) {
   const i = n.indexOf(' [');
@@ -329,7 +301,7 @@ function candidatesFor(r) {
 function ownedOf(id) { let n = 0; for (const e of S.coll.values()) if (e.idProduct === id) n += e.count || 0; return n; }
 function ownedSameName(it) { let n = 0; for (const e of S.coll.values()) if (e.idProduct !== it.id && key(splitName(e.name || '').base.split(' - ')[0]) === it.baseKey) n += e.count || 0; return n; }
 
-/* ---------- Foto -> Claude ---------- */
+/* ---------- Foto -> Texterkennung auf dem Gerät ---------- */
 function loadImg(file) {
   return new Promise((res, rej) => { const u = URL.createObjectURL(file); const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('Bild konnte nicht gelesen werden')); i.src = u; });
 }
@@ -339,92 +311,119 @@ function scaled(img, max) {
   c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); return c;
 }
 
-const CARD_SCHEMA = {
-  type: 'object',
-  properties: {
-    is_card: {type: 'boolean'},
-    name_printed: {type: 'string'},
-    name_en: {type: 'string'},
-    attacks_en: {type: 'array', items: {type: 'string'}},
-    number: {type: 'string'},
-    set_total: {type: 'string'},
-    set_code: {type: 'string'},
-    set_name: {type: 'string'},
-    language: {type: 'string'},
-    rarity: {type: 'string'},
-    finish: {type: 'string', enum: ['normal', 'holo', 'reverse_holo', 'unklar']},
-    hinweis: {type: 'string'},
-  },
-  required: ['is_card', 'name_printed', 'name_en', 'attacks_en', 'number', 'set_total', 'set_code', 'set_name', 'language', 'rarity', 'finish', 'hinweis'],
-  additionalProperties: false,
-};
-const PROMPT = `Das Bild ist ein Handyfoto einer Pokémon-Sammelkarte (TCG). Lies die Karte genau und fülle die Felder:
-- is_card: false, wenn keine Pokémon-Karte zu sehen ist (dann die übrigen Felder leer lassen und in hinweis kurz sagen, was zu sehen ist).
-- name_printed: der Name genau wie auf der Karte gedruckt.
-- name_en: der offizielle englische Kartenname im englischen TCG, mit Zusätzen wie ex, EX, GX, V, VMAX, VSTAR (z. B. "Glurak ex" -> "Charizard ex", "Professoren-Forschung" -> "Professor's Research").
-- attacks_en: die offiziellen englischen Namen aller Attacken und Fähigkeiten, in gedruckter Reihenfolge.
-- number: die Sammelnummer links vom Schrägstrich, z. B. "125", "TG05" oder "SWSH050".
-- set_total: die Zahl rechts vom Schrägstrich, sonst "".
-- set_code: das gedruckte Set-Kürzel (z. B. "OBF"), sonst "".
-- set_name: der englische Set-Name, falls erkennbar, sonst "".
-- language: Sprache der Karte als Code, z. B. "de", "en", "ja".
-- rarity: Seltenheit, falls erkennbar, sonst "".
-- finish: normal, holo, reverse_holo oder unklar.
-- hinweis: kurzer Hinweis auf Deutsch, falls etwas unsicher oder schlecht lesbar ist, sonst "".`;
-
-let sdkPromise = null;
-function sdk() {
-  sdkPromise ||= import('https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk@1.3.0/+esm').then(m => m.default || m.Anthropic);
-  return sdkPromise;
+let NAMES = null; // Map: Schlüssel (deutscher oder englischer Name) -> englischer Name
+let nameKeys = [];
+async function loadNames() {
+  try {
+    const rows = await getJson('data/namen.json');
+    NAMES = new Map();
+    for (const [de, en] of rows) { NAMES.set(key(de), en); NAMES.set(key(en), en); }
+    nameKeys = [...NAMES.keys()].filter(k => k.length >= 3);
+  } catch (e) { NAMES = new Map(); }
 }
-async function identify(blob) {
-  const Anthropic = await sdk();
-  const client = new Anthropic({apiKey: settings.key, dangerouslyAllowBrowser: true});
-  const data = await new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result).split(',')[1]); fr.onerror = () => rej(fr.error); fr.readAsDataURL(blob); });
-  const model = settings.model;
-  const req = {
-    model,
-    max_tokens: 4000,
-    output_config: {effort: 'low', format: {type: 'json_schema', schema: CARD_SCHEMA}},
-    messages: [{role: 'user', content: [
-      {type: 'image', source: {type: 'base64', media_type: 'image/jpeg', data}},
-      {type: 'text', text: PROMPT},
-    ]}],
+
+function loadScript(src) {
+  return new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => rej(new Error('Texterkennung konnte nicht geladen werden. Bist du online?')); document.head.appendChild(s); });
+}
+let ocrWorker = null, ocrProgress = null;
+async function getWorker() {
+  if (!ocrWorker) {
+    if (!window.Tesseract) await loadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js');
+    ocrWorker = await Tesseract.createWorker('deu', 1, {logger: m => ocrProgress && ocrProgress(m)});
+  }
+  return ocrWorker;
+}
+// Ausschnitt in Graustufen mit gestrecktem Kontrast, damit die Texterkennung sauberer liest.
+function region(img, x0, y0, x1, y1, width) {
+  const W = img.naturalWidth, H = img.naturalHeight;
+  const sx = W * x0, sy = H * y0, sw = W * (x1 - x0), sh = H * (y1 - y0);
+  const s = width / sw;
+  const c = document.createElement('canvas'); c.width = Math.round(sw * s); c.height = Math.round(sh * s);
+  const g = c.getContext('2d', {willReadFrequently: true}); g.drawImage(img, sx, sy, sw, sh, 0, 0, c.width, c.height);
+  const d = g.getImageData(0, 0, c.width, c.height), a = d.data;
+  let lo = 255, hi = 0;
+  for (let i = 0; i < a.length; i += 4) { const v = (a[i] * 0.299 + a[i + 1] * 0.587 + a[i + 2] * 0.114) | 0; a[i] = v; if (v < lo) lo = v; if (v > hi) hi = v; }
+  const span = Math.max(1, hi - lo);
+  for (let i = 0; i < a.length; i += 4) { const v = Math.min(255, Math.max(0, ((a[i] - lo) * 255) / span)); a[i] = a[i + 1] = a[i + 2] = v; }
+  g.putImageData(d, 0, 0); return c;
+}
+const SUFFIX = /^(ex|gx|v|vmax|vstar|vunion|break|lvx|prime|legend|star)$/i;
+function findName(lines) {
+  let best = null;
+  const consider = (raw, weight, suffix) => {
+    const k = key(raw);
+    if (k.length < 3) return;
+    let en = NAMES.get(k), dist = 0;
+    if (!en && k.length >= 5) {
+      const tol = k.length >= 8 ? 2 : 1;
+      for (const nk of nameKeys) { if (Math.abs(nk.length - k.length) > tol) continue; const d = lev(nk, k); if (d <= tol && (!en || d < dist)) { en = NAMES.get(nk); dist = d; } }
+    }
+    if (en) { const score = weight + k.length - dist * 3; if (!best || score > best.score) best = {en, raw, score, suffix}; }
   };
-  // Opus/Sonnet: bei einer Sicherheits-Ablehnung springt ein anderes Modell serverseitig ein.
-  const msg = model === 'claude-haiku-5-5'
-    ? await client.messages.create(req)
-    : await client.beta.messages.create({...req, betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default'});
-  if (msg.stop_reason === 'refusal') throw new Error('Claude hat das Bild nicht ausgewertet');
-  if (msg.stop_reason === 'max_tokens') throw new Error('Antwort war unvollständig');
-  const text = msg.content.filter(b => b.type === 'text').map(b => b.text).join('');
-  return JSON.parse(text);
+  lines.forEach((line, li) => {
+    const weight = li < 4 ? 10 : 0;
+    const words = line.replace(/[^\p{L}\p{N}\s'’.\-]/gu, ' ').split(/[\s\-]+/).filter(Boolean);
+    let suffix = '';
+    for (const w of words) if (SUFFIX.test(w)) suffix = ' ' + w;
+    for (let i = 0; i < words.length; i++) {
+      if (SUFFIX.test(words[i])) continue;
+      consider(words[i], weight, suffix);
+      if (words[i + 1] && !SUFFIX.test(words[i + 1])) consider(words[i] + ' ' + words[i + 1], weight + 1, suffix);
+    }
+    // Trainer- und Energiekarten auf Englisch: ganze Zeile direkt im Cardmarket-Katalog suchen
+    const lk = key(line);
+    if (S.idx && lk.length >= 6 && S.idx.byKey.has(lk) && (!best || best.score < 20 + lk.length)) best = {en: S.idx.byKey.get(lk)[0].base, raw: line.trim(), score: 20 + lk.length, suffix: ''};
+  });
+  return best;
+}
+function findNumber(text) {
+  const m = text.replace(/[Oo](?=\d)|(?<=\d)[Oo]/g, '0').match(/([A-Z]{0,4}\d{1,3})\s*[\/|l]\s*(\d{2,3})/);
+  const code = text.match(/\b([A-Z]{3}|[A-Z]{2}\d)\s+(DE|EN|FR|IT|ES)\b/);
+  return {number: m ? m[1] : '', set_total: m ? m[2] : '', set_code: code ? code[1] : ''};
+}
+async function identify(img, onStep) {
+  ocrProgress = m => { if (m.status && /loading|initializ/i.test(m.status)) onStep('Lade Texterkennung (nur beim ersten Mal) …'); };
+  const w = await getWorker();
+  onStep('Lese den Kartennamen …');
+  const top = (await w.recognize(region(img, 0, 0.02, 0.85, 0.15, 1400))).data.text;
+  onStep('Lese die Kartennummer …');
+  const bottom = (await w.recognize(region(img, 0, 0.86, 1, 1, 1600))).data.text;
+  let lines = top.split('\n').map(s => s.trim()).filter(Boolean);
+  let name = findName(lines), num = findNumber(bottom);
+  if (!name || !num.number) {
+    onStep('Lese die ganze Karte …');
+    const all = (await w.recognize(region(img, 0, 0, 1, 1, 1600))).data.text;
+    const allLines = all.split('\n').map(s => s.trim()).filter(Boolean);
+    if (!name) name = findName(allLines);
+    if (!num.number) num = findNumber(all);
+    lines = lines.concat(allLines);
+  }
+  return {
+    is_card: !!name, read: lines.slice(0, 3).join(' · '),
+    name_printed: name ? name.raw + (name.suffix || '') : '', name_en: name ? name.en + (name.suffix || '') : '',
+    attacks_en: [], ...num,
+    language: name && key(name.raw) !== key(name.en) ? 'de' : '',
+  };
 }
 
 async function handlePhoto(file) {
   if (!file) return;
-  if (!settings.key) { openSettings('Richte zuerst die Kartenerkennung ein. Danach kannst du direkt fotografieren.'); return; }
-  const scan = S.scan = {state: 'reading', thumb: null, r: null, cands: [], sel: 0, variant: 'n', err: null};
+  const scan = S.scan = {state: 'reading', step: 'Bereite das Foto vor …', thumb: null, r: null, cands: [], sel: 0, variant: 'n', err: null};
   renderScan();
   try {
     const img = await loadImg(file);
     scan.thumb = scaled(img, 160).toDataURL('image/jpeg', 0.62);
     renderScan();
-    const blob = await new Promise(res => scaled(img, 1400).toBlob(res, 'image/jpeg', 0.85));
-    const r = await identify(blob);
+    if (!NAMES) await loadNames();
+    const r = await identify(img, t => { if (S.scan === scan) { scan.step = t; renderScan(); } });
     if (S.scan !== scan) return;
-    scan.r = r || {};
-    if (!scan.r.is_card) { scan.state = 'nocard'; renderScan(); return; }
-    scan.variant = scan.r.finish === 'reverse_holo' ? 'r' : 'n';
-    scan.cands = candidatesFor(scan.r);
+    scan.r = r;
+    if (!r.is_card) { scan.state = 'nocard'; renderScan(); return; }
+    scan.cands = candidatesFor(r);
     scan.state = 'done';
   } catch (e) {
     scan.state = 'error';
-    const st = e && e.status;
-    scan.err = st === 401 ? 'Der API-Schlüssel wurde abgelehnt. Prüf ihn in den Einstellungen.'
-      : st === 429 ? 'Gerade zu viele Anfragen. Versuch es in einer Minute noch einmal.'
-      : st === 400 && /credit|balance/i.test(e.message || '') ? 'Dein Anthropic-Guthaben ist aufgebraucht. Lade es auf platform.claude.com auf.'
-      : 'Die Karte konnte nicht gelesen werden (' + esc(e && e.message || e) + '). Versuch ein schärferes Foto ohne Spiegelung.';
+    scan.err = 'Die Karte konnte nicht gelesen werden (' + esc(e && e.message || e) + '). Du kannst sie über die Suche finden.';
   }
   renderScan();
 }
@@ -480,14 +479,6 @@ async function importBackup(file) {
   } catch (e) { $('#storeInfo').innerHTML = `<span class="err">${esc(e.message)}</span>`; }
 }
 
-/* ---------- Einstellungen ---------- */
-function openSettings(msg) {
-  const el = $('#settings'); el.hidden = false;
-  $('#apiKey').value = settings.key; $('#model').value = settings.model;
-  $('#keyState').textContent = msg || (settings.key ? 'Ein Schlüssel ist gespeichert.' : '');
-  el.scrollIntoView({behavior: 'smooth', block: 'start'});
-}
-
 /* ---------- Anzeige ---------- */
 function renderScan() {
   const el = $('#scan'), sc = S.scan;
@@ -496,11 +487,11 @@ function renderScan() {
   const photo = sc.thumb ? `<img src="${sc.thumb}" alt="Dein Foto">` : '<img alt="">';
   const close = `<button class="btn small ghost" type="button" data-act="close">Schließen</button>`;
   if (sc.state === 'reading') {
-    el.innerHTML = `<div class="scanhead">${photo}<div class="info"><div class="status"><span class="spin"></span>Claude liest die Karte …</div><p class="note">Name, Attacken und Kartennummer werden erkannt und mit Cardmarket abgeglichen.</p></div></div>`;
+    el.innerHTML = `<div class="scanhead">${photo}<div class="info"><div class="status"><span class="spin"></span>${esc(sc.step || 'Lese die Karte …')}</div><p class="note">Name und Kartennummer werden erkannt und mit Cardmarket abgeglichen.</p></div></div>`;
     return;
   }
   if (sc.state === 'error' || sc.state === 'nocard') {
-    const msg = sc.state === 'nocard' ? ('Auf dem Foto habe ich keine Pokémon-Karte erkannt. ' + esc(sc.r && sc.r.hinweis || '')) : sc.err;
+    const msg = sc.state === 'nocard' ? ('Den Kartennamen konnte ich nicht sicher lesen' + (sc.r && sc.r.read ? ` (gelesen: „${esc(sc.r.read.slice(0, 80))}“)` : '') + '. Probier ein schärferes Foto ohne Spiegelung oder tipp den Namen oben in die Suche.') : sc.err;
     el.innerHTML = `<div class="scanhead">${photo}<div class="info"><p class="err" style="margin:0">${msg}</p></div></div><div class="row-actions">${close}</div>`;
     return;
   }
@@ -594,14 +585,6 @@ for (const id of ['cam', 'gal']) $('#' + id).addEventListener('change', e => { c
 let st; $('#search').addEventListener('input', e => { clearTimeout(st); st = setTimeout(() => startSearch(e.target.value), 220); });
 $('#filter').addEventListener('input', e => { S.filter = e.target.value; render(); });
 $('#sort').addEventListener('change', e => { S.sort = e.target.value; render(); });
-$('#openSettings').addEventListener('click', () => openSettings());
-$('#closeSettings').addEventListener('click', () => { $('#settings').hidden = true; });
-$('#saveKey').addEventListener('click', () => {
-  const k = $('#apiKey').value.trim();
-  settings.key = k; settings.model = $('#model').value;
-  $('#keyState').innerHTML = k ? '<span class="ok">Gespeichert. Du kannst jetzt Karten fotografieren.</span>' : 'Kein Schlüssel gespeichert. Die Suche funktioniert trotzdem.';
-  updateCamNote();
-});
 $('#exportBtn').addEventListener('click', exportBackup);
 $('#importFile').addEventListener('change', e => { const f = e.target.files[0]; e.target.value = ''; if (f) importBackup(f); });
 document.addEventListener('click', e => {
@@ -621,20 +604,13 @@ document.addEventListener('click', e => {
   else if (t.dataset.del) setCount(t.dataset.del, 0);
   else if (t.dataset.nodel) { S.confirmDel = null; render(); }
 });
-function updateCamNote() {
-  const n = $('#camNote');
-  n.hidden = !!settings.key;
-  n.innerHTML = 'Für die Fotoerkennung brauchst du einmalig einen API-Schlüssel. <a href="#" id="setupLink">Jetzt einrichten</a>';
-  const l = $('#setupLink'); if (l) l.onclick = ev => { ev.preventDefault(); openSettings(); };
-}
-
 /* ---------- Start ---------- */
-updateCamNote();
 render();
 try { const saved = await idbGet('karten'); if (saved) S.coll = new Map(saved); } catch (e) { $('#storeInfo').innerHTML = '<span class="err">Der Gerätespeicher ist nicht verfügbar (privater Modus?). Karten gehen beim Schließen verloren.</span>'; }
 try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch (e) {}
 render();
 loadData();
+loadNames();
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 </script>
 </body>

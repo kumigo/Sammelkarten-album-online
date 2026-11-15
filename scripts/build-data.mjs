@@ -34,7 +34,30 @@ const preise = {
     .map(p => [p.idProduct, r2(p.trend), r2(p.avg), r2(p.low), r2(p.avg30), r2(p["trend-holo"]), r2(p["low-holo"]), r2(p["avg30-holo"])]),
 };
 
+// Pokémon-Namen Deutsch/Englisch für die Texterkennung (Cardmarket führt nur englische Namen).
+async function loadNames() {
+  try {
+    const res = await fetch("https://raw.githubusercontent.com/PokeAPI/pokeapi/master/data/v2/csv/pokemon_species_names.csv");
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const lines = (await res.text()).trim().split("\n").slice(1);
+    const byId = new Map();
+    for (const line of lines) {
+      const [id, lang, name] = line.split(",");
+      if (lang !== "6" && lang !== "9") continue;
+      const e = byId.get(id) || {};
+      e[lang === "6" ? "de" : "en"] = name;
+      byId.set(id, e);
+    }
+    return [...byId.values()].filter(e => e.en).map(e => [e.de || e.en, e.en]);
+  } catch (err) {
+    console.warn("Namensliste nicht geladen:", err.message);
+    return [];
+  }
+}
+const namen = await loadNames();
+
 await mkdir("data", { recursive: true });
+await writeFile("data/namen.json", JSON.stringify(namen));
 await writeFile("data/katalog.json", JSON.stringify(katalog));
 await writeFile("data/preise.json", JSON.stringify(preise));
-console.log(`Katalog: ${katalog.rows.length} Karten (${katalog.date}), Preise: ${preise.rows.length} (${preise.date})`);
+console.log(`Namen: ${namen.length}, Katalog: ${katalog.rows.length} Karten (${katalog.date}), Preise: ${preise.rows.length} (${preise.date})`);
