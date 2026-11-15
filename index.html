@@ -268,6 +268,39 @@ label.lbl{font-size:13px;font-weight:600;display:flex;flex-direction:column;gap:
 .livelist .li span{flex:1;min-width:0;font-size:14px}
 .livelist .li.bad{opacity:.7}
 </style>
+<style>
+.dexside{display:none}
+@media (min-width:1270px){
+  .wrap{max-width:640px}
+  .dexside{display:flex;flex-direction:column;position:fixed;top:190px;width:250px;box-sizing:border-box;z-index:2;gap:18px;padding:22px 20px;border-radius:22px;background:linear-gradient(170deg,#E3202F,#B30F22);box-shadow:0 0 0 3px #5E0A14,0 8px 0 3px #5E0A14,inset 0 2px 0 rgba(255,255,255,.2)}
+  .dl{left:calc(50% - 350px - 26px - 250px);align-items:flex-start}
+  .dr{left:calc(50% + 350px + 36px);padding-left:30px}
+  .dexside button{font:800 12px/1 var(--font-body,inherit);cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .dexside button:active{transform:translateY(2px)}
+  .kb-round{width:64px;height:64px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#555,#151515 70%);border:3px solid #5E0A14;box-shadow:0 4px 0 #3A050C;color:#ddd}
+  .kb-slits{display:flex;gap:10px}.kb-slits i{display:block;width:44px;height:8px;border-radius:4px}.kb-slits .r{background:#8E0B1B}.kb-slits .b{background:#2F7FE0}
+  .kb-row{display:flex;align-items:center;gap:22px;width:100%}
+  .kb-green{width:70px;height:40px;border-radius:8px;background:#5BC85B;border:3px solid #2E7A33;box-shadow:0 4px 0 #2E7A33;color:#0F3A12}
+  .dpad{display:grid;grid-template-columns:30px 30px 30px;grid-template-rows:30px 30px 30px;filter:drop-shadow(0 4px 0 #3A050C)}
+  .dpad button,.dpad .c{background:#1A1A1A;border:0;padding:0}
+  .dpad .u{grid-area:1/2;border-radius:6px 6px 0 0}.dpad .l{grid-area:2/1;border-radius:6px 0 0 6px}.dpad .c{grid-area:2/2}.dpad .r{grid-area:2/3;border-radius:0 6px 6px 0}.dpad .d{grid-area:3/2;border-radius:0 0 6px 6px}
+  .dpad button::after{content:"";display:block;margin:auto;width:0;height:0;border:6px solid transparent}
+  .dpad .u::after{border-bottom-color:#666;margin-top:6px}.dpad .d::after{border-top-color:#666;margin-top:12px}
+  .dpad .l::after{border-right-color:#666;margin-left:6px}.dpad .r::after{border-left-color:#666;margin-left:12px}
+  .kb-grill{display:flex;flex-direction:column;gap:5px;align-self:flex-end}.kb-grill i{display:block;width:60px;height:4px;border-radius:2px;background:#5E0A14;opacity:.7}
+  .kb-hinge{position:absolute;left:-14px;top:30px;bottom:30px;width:22px;border-radius:11px;background:linear-gradient(90deg,#8E0B1B,#E3202F 45%,#8E0B1B);box-shadow:0 0 0 3px #5E0A14}
+  .kb-display{background:#1C1C1C;border:4px solid #5E0A14;border-radius:8px;padding:10px 12px;color:#7CF29A;font-family:ui-monospace,Menlo,Consolas,monospace;display:flex;flex-direction:column;gap:3px;text-shadow:0 0 6px rgba(124,242,154,.45)}
+  .kb-display b{font-size:22px;color:#9BFFB5}.kb-display small{font-size:11px;opacity:.85}
+  .kb-blue{display:grid;grid-template-columns:repeat(5,1fr);gap:3px;background:#1F5FAF;padding:3px;border-radius:6px;border:3px solid #5E0A14}
+  .kb-blue button{background:#38A6F0;border:0;border-radius:3px;height:34px;color:#0B2E55;font-size:13px}
+  .kb-blue button:first-child{grid-column:span 1;font-size:10px}
+  .kb-blue button[aria-pressed="true"]{background:#BDE6FF;box-shadow:inset 0 0 0 2px #fff}
+  .kb-white{display:flex;gap:6px}.kb-white button{flex:1;height:30px;background:#F2F2F2;border:3px solid #5E0A14;border-radius:5px;color:#333}
+  .kb-white button[aria-pressed="true"]{background:#fff;box-shadow:inset 0 -3px 0 #E3202F}
+  .kb-black{display:flex;gap:12px}.kb-black button{flex:1;height:34px;background:#1C1C1C;border:3px solid #5E0A14;border-radius:5px;color:#ccc}
+  .kb-yellow{align-self:flex-end;width:44px;height:44px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#FFF27A,#F2C200 70%);border:3px solid #5E0A14;box-shadow:0 3px 0 #5E0A14;color:#4A3A00;font-size:9px!important}
+}
+</style>
 </head>
 <body>
 <div id="intro" class="intro" hidden>
@@ -387,6 +420,33 @@ label.lbl{font-size:13px;font-weight:600;display:flex;flex-direction:column;gap:
     <div id="storeInfo">Deine Sammlung wird auf diesem Gerät gespeichert. Speichere ab und zu ein Backup.</div>
   </footer>
 </main>
+<aside class="dexside dl" aria-label="Pokédex-Tasten links">
+  <button type="button" class="kb-round" data-k="foto" title="Karte fotografieren"><span>Foto</span></button>
+  <div class="kb-slits"><i class="r"></i><i class="b"></i></div>
+  <div class="kb-row">
+    <button type="button" class="kb-green" data-k="serie" title="Serien-Scan starten">Serie</button>
+    <div class="dpad" role="group" aria-label="Steuerkreuz">
+      <button type="button" class="u" data-k="up" aria-label="Nach oben"></button>
+      <button type="button" class="l" data-k="left" aria-label="Vorherige Generation"></button>
+      <span class="c"></span>
+      <button type="button" class="r" data-k="right" aria-label="Nächste Generation"></button>
+      <button type="button" class="d" data-k="down" aria-label="Nach unten"></button>
+    </div>
+  </div>
+  <div class="kb-grill" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+</aside>
+<aside class="dexside dr" aria-label="Pokédex-Tasten rechts">
+  <div class="kb-hinge" aria-hidden="true"></div>
+  <div class="kb-display" id="sideDisplay"><small>Gesamtwert</small><b id="sideTotal">0,00 €</b><small id="sideCaught">Gefangen: 0</small></div>
+  <div class="kb-blue" role="group" aria-label="Generationen">
+    <button type="button" data-g="x">Trainer</button>
+    <button type="button" data-g="0">1</button><button type="button" data-g="1">2</button><button type="button" data-g="2">3</button><button type="button" data-g="3">4</button>
+    <button type="button" data-g="4">5</button><button type="button" data-g="5">6</button><button type="button" data-g="6">7</button><button type="button" data-g="7">8</button><button type="button" data-g="8">9</button>
+  </div>
+  <div class="kb-white"><button type="button" data-k="dex">Dex</button><button type="button" data-k="cards">Karten</button></div>
+  <div class="kb-black"><button type="button" data-k="trade">Tausch</button><button type="button" data-k="backup">Backup</button></div>
+  <button type="button" class="kb-yellow" data-k="gal" title="Foto aus der Galerie"><span>Galerie</span></button>
+</aside>
 <script type="module">
 const $ = s => document.querySelector(s);
 const eur = new Intl.NumberFormat('de-DE', {style: 'currency', currency: 'EUR'});
@@ -802,6 +862,7 @@ function render() {
   if (S.scan && S.scan.state !== 'reading') renderScan();
   if (S.trade) renderTrade();
   renderDex();
+  syncSide();
 }
 
 /* ---------- Tausch-Rechner ---------- */
@@ -1009,6 +1070,7 @@ function setView(v) {
   for (const b of document.querySelectorAll('.dextabs button')) b.setAttribute('aria-selected', String(b.dataset.view === v));
   $('#dexView').hidden = v !== 'dex'; $('#cardsView').hidden = v !== 'cards';
   if (v === 'dex') renderDex();
+  syncSide();
 }
 function renderDex() {
   const el = $('#dexView');
@@ -1048,7 +1110,7 @@ function renderDex() {
 }
 $('#dexView').addEventListener('click', e => {
   const t = e.target.closest('button'); if (!t) return;
-  if (t.dataset.gen) { S.gen = t.dataset.gen === 'x' ? 'x' : +t.dataset.gen; S.dexSel = null; renderDex(); }
+  if (t.dataset.gen) { S.gen = t.dataset.gen === 'x' ? 'x' : +t.dataset.gen; S.dexSel = null; renderDex(); syncSide(); }
   else if (t.dataset.dex) { S.dexSel = +t.dataset.dex; renderDex(); $('#dexDetail').scrollIntoView({behavior: 'smooth', block: 'nearest'}); }
   else if (t.dataset.dexclose) { S.dexSel = null; renderDex(); }
   else if (t.dataset.dexsearch) { $('#search').value = t.dataset.dexsearch; startSearch(t.dataset.dexsearch); window.scrollTo({top: 0, behavior: 'smooth'}); }
@@ -1155,6 +1217,33 @@ $('#live').addEventListener('click', e => {
   else if (t.dataset.lundo) { const x = L.log[+t.dataset.lundo]; if (x && x.ok) { const ex = S.coll.get(x.id); if (ex) setCount(x.id, (ex.count || 1) - 1); x.ok = false; x.text = 'Zurückgenommen: ' + x.text; renderLive(); } }
 });
 document.addEventListener('visibilitychange', () => { if (document.hidden && L.on) stopLive(); });
+
+
+/* ---------- Seitentasten (großer Bildschirm) ---------- */
+function syncSide() {
+  const t = $('#sideTotal'); if (!t) return;
+  t.textContent = $('#total').textContent;
+  $('#sideCaught').textContent = DEX ? `Gefangen: ${dexCaught().size}/${DEX.length}` : $('#countLine').textContent;
+  for (const b of document.querySelectorAll('.kb-blue button')) b.setAttribute('aria-pressed', String(S.view === 'dex' && String(S.gen ?? 0) === b.dataset.g));
+  for (const b of document.querySelectorAll('.kb-white button')) b.setAttribute('aria-pressed', String(S.view === b.dataset.k));
+}
+function goGen(g) { setView('dex'); S.gen = g === 'x' ? 'x' : +g; S.dexSel = null; renderDex(); syncSide(); $('.dextabs').scrollIntoView({behavior: 'smooth', block: 'start'}); }
+for (const side of document.querySelectorAll('.dexside')) side.addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.g) return goGen(b.dataset.g);
+  const k = b.dataset.k;
+  if (k === 'foto') $('#cam').click();
+  else if (k === 'gal') $('#gal').click();
+  else if (k === 'serie') startLive();
+  else if (k === 'trade') openTrade();
+  else if (k === 'backup') exportBackup();
+  else if (k === 'dex' || k === 'cards') { setView(k); syncSide(); $('.dextabs').scrollIntoView({behavior: 'smooth', block: 'start'}); }
+  else if (k === 'up' || k === 'down') window.scrollBy({top: (k === 'up' ? -1 : 1) * window.innerHeight * 0.6, behavior: 'smooth'});
+  else if (k === 'left' || k === 'right') {
+    const order = ['x', 0, 1, 2, 3, 4, 5, 6, 7, 8], i = order.indexOf(S.view === 'dex' ? (S.gen ?? 0) : 0);
+    goGen(order[(i + (k === 'right' ? 1 : -1) + order.length) % order.length]);
+  }
+});
 
 /* ---------- Start ---------- */
 { let v = 'dex'; try { v = localStorage.getItem('sb-view') || 'dex'; } catch (e) {} setView(v); }
