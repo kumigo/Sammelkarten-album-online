@@ -355,6 +355,37 @@ label.lbl{font-size:13px;font-weight:600;display:flex;flex-direction:column;gap:
 #storeInfo{margin-top:10px;background:var(--glass);border-radius:14px;padding:10px 14px;font-size:14px}
 #menu{margin-top:8px}
 </style>
+<style>
+/* Eigene Ansichten: Serien-Scan bzw. Tausch stehen allein im Bildschirm */
+body[data-mode] .wrap > section:not(#live):not(#trade):not(#scan):not(#topSec), body[data-mode] #menu, body[data-mode="live"] #topSec{display:none!important}
+body[data-mode="trade"] #topSec{margin-top:4px}
+body[data-mode] .top .meta .sub, body[data-mode] .top .worth .sub{display:none}
+body[data-mode] .top .in{padding-block:8px 4px!important}
+body[data-mode] .top .meta{padding-top:40px}
+body[data-mode] .title{font-size:clamp(20px,5.6vw,30px)}
+body[data-mode] .total{font-size:20px}
+body[data-mode] .casekeys{padding-bottom:6px}
+body[data-mode] .casekeys i{transform:scale(.8)}
+body[data-mode] .casekeys button{gap:1px}
+body[data-mode="live"] #scan, body[data-mode="live"] #trade{display:none!important}
+body[data-mode="trade"] #live{display:none!important}
+body[data-mode] .wrap{padding-block:2px 8px!important;gap:10px}
+body[data-mode="live"] #live{gap:8px;padding:10px 12px}
+body[data-mode="live"] #live .note{display:none}
+body[data-mode="live"] .livehead h2{font-size:18px}
+body[data-mode="live"] .livehead{flex-wrap:nowrap;gap:8px}
+body[data-mode="live"] .livebox{height:calc(100dvh - var(--hdr,230px) - 330px);min-height:200px;width:auto;max-width:100%;aspect-ratio:3/4;max-height:none}
+body[data-mode="live"] .livestat{font-size:14px;min-height:2.6em}
+body[data-mode="live"] .livelist{max-height:62px}
+body[data-mode="trade"] #trade{padding:10px 12px;gap:10px}
+body[data-mode="trade"] .tsides{display:grid!important;grid-template-columns:1fr 1fr;gap:8px}
+body[data-mode="trade"] .tside{padding:10px 8px;min-width:0}
+body[data-mode="trade"] .tside h3{font-size:17px;margin:0}
+body[data-mode="trade"] .tside .row-actions{flex-direction:column;gap:6px}
+body[data-mode="trade"] .tside .row-actions .btn{width:100%;min-height:38px;padding:6px 8px}
+body[data-mode="trade"] .tside .field{font-size:13px;padding:6px}
+body[data-mode="trade"] .titem{font-size:13px}
+</style>
 </head>
 <body>
 <div id="intro" class="intro" hidden>
@@ -435,7 +466,7 @@ label.lbl{font-size:13px;font-weight:600;display:flex;flex-direction:column;gap:
     </div>
     <p class="note" style="margin:0">Deine Sammlung wird nur auf diesem Gerät gespeichert. Speichere ab und zu ein Backup.</p>
   </footer>
-  <section>
+  <section id="topSec">
     <div class="actions">
       <label class="btn primary" for="cam">Karte fotografieren</label>
       <label class="btn" for="gal">Galerie</label>
@@ -999,13 +1030,14 @@ function render() {
 
 /* ---------- Tausch-Rechner ---------- */
 function tradeValue(list) { let s = 0, miss = 0; for (const t of list) { const p = priceOf(t.id, t.variant); if (p == null) miss++; else s += p; } return {s, miss}; }
-function openTrade() { if (!S.trade) S.trade = {give: [], get: [], side: 'give', confirm: false}; renderTrade(); $('#trade').scrollIntoView({behavior: 'smooth', block: 'start'}); }
+function openTrade() { if (!S.trade) S.trade = {give: [], get: [], side: 'give', confirm: false}; renderTrade(); }
 function addToTrade(it, variant, scan) {
   const side = S.trade.side;
   S.trade[side].push({id: it.id, name: it.name, printed: (scan && scan.r && scan.r.name_printed) || it.base, variant, thumb: (scan && scan.thumb) || ''});
   S.trade.confirm = false; renderTrade();
 }
 function renderTrade() {
+  setMode();
   const el = $('#trade'), T = S.trade;
   if (!T) { el.hidden = true; el.innerHTML = ''; return; }
   el.hidden = false;
@@ -1316,12 +1348,12 @@ function beep(ok) {
     o.connect(g).connect(a.destination); o.start(); o.stop(a.currentTime + .2); } catch (e) {}
 }
 function renderLive() {
+  setMode();
   const el = $('#live');
   if (!L.on) { el.hidden = true; el.innerHTML = ''; return; }
   if (!el.innerHTML) {
-    el.innerHTML = `<div class="listhead"><h2>Serien-Scan</h2><button class="btn small ghost" type="button" data-lstop="1">Beenden</button></div>
+    el.innerHTML = `<div class="listhead livehead"><h2>Serien-Scan</h2><span class="row-actions" style="margin:0"><button class="btn small" type="button" data-lnow="1">Jetzt lesen</button><button class="btn small ghost" type="button" data-lstop="1">Beenden</button></span></div>
       <div class="livebox"><video playsinline muted autoplay></video><div class="guide"></div></div>
-      <div class="row-actions" style="justify-content:center"><button class="btn primary" type="button" data-lnow="1">Jetzt lesen</button></div>
       <div class="livestat" id="liveStat"></div><div class="livelist" id="liveList"></div>
       <p class="note" style="margin:0">Leg das Handy fest über die Karten, z. B. auf eine Halterung. Jede neue Karte, die ruhig im Rahmen liegt, wird erkannt und automatisch eingetragen. Nach jeder erkannten Karte sagt die App den Wert an: Schmutz, Naja geht so, Schon mal gut oder Jackpot. Ein tiefer Ton heißt nicht erkannt.</p>`;
   }
@@ -1334,7 +1366,7 @@ async function startLive() {
   if (L.on) return;
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { $('#storeInfo').textContent = ''; alertLive('Dieser Browser kann die Kamera nicht dauerhaft öffnen. Nutze „Karte fotografieren“.'); return; }
   L.on = true; L.log = []; L.prev = null; L.done = null; L.stable = 0; L.lastId = null; L.lastOk = false; L.moved = true; L.failShown = false; L.lastRead = 0; L.okSig = null; L.status = 'Kamera wird gestartet …'; renderLive();
-  $('#live').scrollIntoView({behavior: 'smooth', block: 'start'});
+
   try {
     L.stream = await navigator.mediaDevices.getUserMedia({video: {facingMode: {ideal: 'environment'}, width: {ideal: 3840}}, audio: false});
     const v = $('#live video'); v.srcObject = L.stream; await v.play();
@@ -1523,6 +1555,17 @@ function verdict(price) {
   requestAnimationFrame(() => el.classList.add('show'));
   clearTimeout(verdict.t); verdict.t = setTimeout(() => el.classList.remove('show'), i === 3 ? 2200 : 1500);
 }
+
+
+/* ---------- Ansicht: Serien-Scan / Tausch allein ---------- */
+function setMode() {
+  const m = L.on ? 'live' : S.trade ? 'trade' : '';
+  if ((document.body.dataset.mode || '') === m) return;
+  if (m) document.body.dataset.mode = m; else delete document.body.dataset.mode;
+  const h = document.querySelector('header.top'); if (h) document.documentElement.style.setProperty('--hdr', h.offsetHeight + 'px');
+  window.scrollTo({top: 0});
+}
+window.addEventListener('resize', () => { const h = document.querySelector('header.top'); if (h) document.documentElement.style.setProperty('--hdr', h.offsetHeight + 'px'); });
 
 /* ---------- Start ---------- */
 { let v = 'dex'; try { v = localStorage.getItem('sb-view') || 'dex'; } catch (e) {} setView(v); }
