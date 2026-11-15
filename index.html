@@ -161,8 +161,63 @@ img{max-width:100%}
 label.lbl{font-size:13px;font-weight:600;display:flex;flex-direction:column;gap:6px}
 .ok{color:var(--good)}
 </style>
+<style>
+/* Begrüßung im Stil eines Spiel-Intros: Bühne mit Spot, Professor, Textbox unten. */
+.intro{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;background:linear-gradient(180deg,#7EC8F5 0%,#BFE6FF 55%,#8FD18B 55%,#6BBF6A 100%);padding:env(safe-area-inset-top,0px) max(16px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));transition:opacity .5s}
+.intro.out{opacity:0}
+.stage{flex:1;display:flex;align-items:flex-end;justify-content:center;position:relative;min-height:0}
+.spot{position:absolute;bottom:4%;width:min(70vw,300px);aspect-ratio:3/1;border-radius:50%;background:#DFF5D6;border:4px solid #4E9F4D}
+.prof{position:relative;width:min(62vw,280px);height:auto;max-height:52vh;margin-bottom:6%;animation:hop 2.4s ease-in-out infinite}
+@keyframes hop{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@media (prefers-reduced-motion:reduce){.prof{animation:none}.intro{transition:none}}
+.dialog{position:relative;max-width:640px;width:100%;margin:0 auto;box-sizing:border-box;background:#FFFFFF;color:#16244F;border:5px solid #1C2B5A;border-radius:18px;box-shadow:inset 0 0 0 4px #FFCB05,0 6px 0 #1C2B5A;padding:18px 18px 22px;min-height:150px;display:flex;flex-direction:column;gap:12px;font-family:var(--font-body)}
+.speaker{position:absolute;top:-18px;left:16px;background:#E3350D;color:#fff;font-family:var(--font-display);font-size:16px;padding:4px 12px;border-radius:10px;border:3px solid #1C2B5A}
+.dialog p{margin:6px 0 0;font-size:18px;font-weight:800;line-height:1.45;min-height:3em}
+.dialog form{display:flex;gap:8px;flex-wrap:wrap}
+.dialog form .field{flex:1 1 160px;min-width:0;background:#fff;color:#16244F;border:3px solid #1C2B5A;font-weight:800;font-size:17px}
+.next{position:absolute;right:14px;bottom:8px;appearance:none;border:0;background:none;color:#E3350D;font-size:20px;cursor:pointer;animation:blink 1s steps(2) infinite;padding:4px 8px}
+@keyframes blink{50%{opacity:0}}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+</style>
 </head>
 <body>
+<div id="intro" class="intro" hidden>
+  <div class="stage">
+    <div class="spot"></div>
+    <svg class="prof" viewBox="0 0 220 300" role="img" aria-label="Professor Kastanie">
+      <ellipse cx="110" cy="292" rx="80" ry="8" fill="rgba(0,0,0,.18)"/>
+      <path d="M40 300 C40 210 60 180 110 176 C160 180 180 210 180 300 Z" fill="#F7F9FF" stroke="#1C2B5A" stroke-width="5"/>
+      <path d="M92 182 L110 240 L128 182 Z" fill="#3A7BD5" stroke="#1C2B5A" stroke-width="4" stroke-linejoin="round"/>
+      <path d="M104 190 L110 200 L116 190 L113 232 L110 238 L107 232 Z" fill="#E3350D"/>
+      <path d="M92 182 L78 214 L100 206 Z M128 182 L142 214 L120 206 Z" fill="#E6EBF7" stroke="#1C2B5A" stroke-width="4" stroke-linejoin="round"/>
+      <rect x="138" y="232" width="22" height="26" rx="3" fill="#E6EBF7" stroke="#1C2B5A" stroke-width="3"/>
+      <rect x="146" y="226" width="4" height="14" rx="2" fill="#E3350D"/>
+      <rect x="98" y="150" width="24" height="30" rx="8" fill="#EDB98A" stroke="#1C2B5A" stroke-width="4"/>
+      <circle cx="110" cy="112" r="50" fill="#F4C9A0" stroke="#1C2B5A" stroke-width="5"/>
+      <circle cx="60" cy="118" r="10" fill="#F4C9A0" stroke="#1C2B5A" stroke-width="4"/>
+      <circle cx="160" cy="118" r="10" fill="#F4C9A0" stroke="#1C2B5A" stroke-width="4"/>
+      <path d="M58 104 C50 70 80 50 96 60 C100 44 128 42 134 58 C152 50 172 72 162 104 C156 86 146 78 134 80 C124 70 96 70 86 80 C74 78 64 86 58 104 Z" fill="#A7633A" stroke="#1C2B5A" stroke-width="5" stroke-linejoin="round"/>
+      <circle cx="90" cy="116" r="14" fill="#FFFFFF" fill-opacity=".55" stroke="#1C2B5A" stroke-width="4"/>
+      <circle cx="130" cy="116" r="14" fill="#FFFFFF" fill-opacity=".55" stroke="#1C2B5A" stroke-width="4"/>
+      <path d="M104 116 L116 116" stroke="#1C2B5A" stroke-width="4"/>
+      <circle cx="92" cy="117" r="4" fill="#1C2B5A"/><circle cx="128" cy="117" r="4" fill="#1C2B5A"/>
+      <path d="M78 98 L98 96 M122 96 L142 98" stroke="#7A4425" stroke-width="5" stroke-linecap="round"/>
+      <path d="M92 138 C100 148 120 148 128 138" fill="none" stroke="#1C2B5A" stroke-width="4" stroke-linecap="round"/>
+      <circle cx="74" cy="132" r="6" fill="#F08A7E" fill-opacity=".6"/><circle cx="146" cy="132" r="6" fill="#F08A7E" fill-opacity=".6"/>
+    </svg>
+  </div>
+  <div class="dialog" id="dialog" role="dialog" aria-live="polite" aria-label="Begrüßung">
+    <div class="speaker">Prof. Kastanie</div>
+    <p id="dlgText"></p>
+    <form id="nameForm" hidden>
+      <label for="introName" class="vh">Dein Name</label>
+      <input class="field" id="introName" type="text" maxlength="24" placeholder="Dein Name" autocomplete="nickname" enterkeyhint="done">
+      <button class="btn primary" type="submit">Los geht’s!</button>
+    </form>
+    <button class="next" id="dlgNext" type="button" aria-label="Weiter">▼</button>
+  </div>
+</div>
+
 <header class="top"><div class="in">
   <div class="meta">
     <button class="title" type="button" id="title" title="Namen ändern">Mein Sammelbuch</button>
@@ -667,6 +722,44 @@ $('#saveName').addEventListener('click', () => { try { localStorage.setItem('sb-
 $('#ownerName').addEventListener('keydown', e => { if (e.key === 'Enter') $('#saveName').click(); });
 $('#title').addEventListener('click', () => { const f = $('#ownerName'); f.scrollIntoView({behavior: 'smooth', block: 'center'}); setTimeout(() => f.focus(), 300); });
 applyName();
+
+/* ---------- Begrüßung durch den Professor (nur beim ersten Öffnen) ---------- */
+function runIntro() {
+  const intro = $('#intro'), text = $('#dlgText'), next = $('#dlgNext'), form = $('#nameForm');
+  const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let typing = null, full = '';
+  const say = (s, onDone) => {
+    full = s; clearInterval(typing); text.textContent = ''; let i = 0;
+    if (calm) { text.textContent = s; onDone && onDone(); return; }
+    typing = setInterval(() => { text.textContent = s.slice(0, ++i); if (i >= s.length) { clearInterval(typing); typing = null; onDone && onDone(); } }, 28);
+  };
+  const finishTyping = () => { if (typing) { clearInterval(typing); typing = null; text.textContent = full; return true; } return false; };
+  const lines = [
+    'Hallo! Herzlich willkommen in der Welt der Sammelkarten! Ich bin Professor Kastanie.',
+    'Hier fotografierst du deine Karten, und ich sage dir, was sie bei Cardmarket wert sind.',
+    'Willkommen, junger Trainer! Wie ist dein Name? Dann lege ich deinen Kartendex an.',
+  ];
+  let step = 0;
+  const advance = () => {
+    if (finishTyping()) { if (step === lines.length) showForm(); return; }
+    if (step < lines.length) { const last = step === lines.length - 1; say(lines[step++], last ? showForm : null); }
+  };
+  const showForm = () => { next.hidden = true; form.hidden = false; setTimeout(() => $('#introName').focus(), 50); };
+  intro.hidden = false; next.hidden = false; form.hidden = true;
+  intro.addEventListener('click', e => { if (!e.target.closest('form')) advance(); });
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    const n = $('#introName').value.trim();
+    if (!n) { $('#introName').focus(); return; }
+    try { localStorage.setItem('sb-name', n); } catch (err) {}
+    applyName(); form.hidden = true;
+    say(`Super, ${n}! Dein Kartendex ist bereit. Viel Spaß beim Sammeln!`, () => {
+      setTimeout(() => { intro.classList.add('out'); setTimeout(() => { intro.hidden = true; intro.classList.remove('out'); }, calm ? 0 : 500); }, calm ? 600 : 1400);
+    });
+  });
+  advance();
+}
+if (!ownerName()) runIntro();
 
 /* ---------- Start ---------- */
 render();
