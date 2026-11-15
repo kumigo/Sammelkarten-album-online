@@ -1496,7 +1496,7 @@ const VERDICTS = [
 function verdict(price) {
   if (price == null || isNaN(price)) return;
   const i = VERDICTS.findIndex(v => price < v.max), v = VERDICTS[i];
-  const ms = tones(v.seq, v.type) || 0;
+  const ms = 0; // nur die Sprachaufnahme, keine Melodie davor
   // Nach der Kamera-App ist die Sprachausgabe auf manchen Handys pausiert: erst fortsetzen, dann kurz warten, dann sprechen.
   try { speechSynthesis.resume(); speechSynthesis.cancel(); } catch (e) {}
   // Zuerst die eigenen Aufnahmen (sounds/*.mp3); nur wenn die noch nicht geladen sind, spricht die Stimme des Handys.
@@ -1516,7 +1516,7 @@ function verdict(price) {
       speechSynthesis.speak(u);
       setTimeout(fallback, 1000);
     } catch (e) { fallback(); }
-  }, Math.max(ms, 150));
+  }, Math.max(ms, 30));
   try { navigator.vibrate && navigator.vibrate(i === 3 ? [80, 60, 80, 60, 200] : 60); } catch (e) {}
   let el = $('#verdict'); if (!el) { el = document.createElement('div'); el.id = 'verdict'; el.setAttribute('aria-live', 'polite'); document.body.appendChild(el); }
   el.className = 'verdict v' + i; el.innerHTML = `${esc(v.word)}<small>${fmt(price)}</small>`;
