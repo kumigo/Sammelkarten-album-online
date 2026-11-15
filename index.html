@@ -743,12 +743,18 @@ $('#title').addEventListener('click', () => { const f = $('#ownerName'); f.scrol
 applyName();
 
 /* ---------- Eigenes Professor-Bild (nur auf diesem Gerät) ---------- */
+// Liegt professor.png im Repository, gilt es als Standardbild für alle (Name dann „Eich“).
+let repoProf = null;
+async function checkRepoProf() {
+  try { const r = await fetch('professor.png', {method: 'HEAD', cache: 'no-cache'}); repoProf = r.ok && /image/.test(r.headers.get('content-type') || '') ? 'professor.png' : null; } catch (e) { repoProf = null; }
+}
 async function applyProf() {
   let url = null;
   try { url = await idbGet('prof'); } catch (e) {}
+  url = url || repoProf;
   $('#profImg').hidden = !url; $('#profSvg').style.display = url ? 'none' : '';
   if (url) $('#profImg').src = url;
-  $('#profReset').hidden = !url;
+  $('#profReset').hidden = !url || url === repoProf;
 }
 $('#profFile').addEventListener('change', async e => {
   const f = e.target.files[0]; e.target.value = ''; if (!f) return;
@@ -763,7 +769,7 @@ $('#profFile').addEventListener('change', async e => {
 });
 $('#profReset').addEventListener('click', async () => { try { await idbSet('prof', null); } catch (e) {} applyProf(); });
 $('#replayIntro').addEventListener('click', () => { window.scrollTo(0, 0); runIntro(); });
-function profName() { try { return localStorage.getItem('sb-prof') || 'Kastanie'; } catch (e) { return 'Kastanie'; } }
+function profName() { const d = repoProf ? 'Eich' : 'Kastanie'; try { return localStorage.getItem('sb-prof') || d; } catch (e) { return d; } }
 $('#profName').value = profName() === 'Kastanie' ? '' : profName();
 $('#profEdit').addEventListener('click', e => { e.stopPropagation(); const pnl = $('#profPanel'); pnl.hidden = !pnl.hidden; $('#profEdit').setAttribute('aria-expanded', String(!pnl.hidden)); });
 $('#profPanel').addEventListener('click', e => e.stopPropagation());
@@ -808,6 +814,7 @@ function runIntro() {
   $('#introName').value = ownerName();
   advance();
 }
+await checkRepoProf(); await applyProf();
 if (!ownerName()) runIntro();
 
 /* ---------- Start ---------- */

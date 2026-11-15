@@ -32,6 +32,7 @@ jobs:
         run: |
           mkdir -p _site
           cp -r index.html manifest.webmanifest sw.js icon.svg data _site/
+          if [ -f professor.png ]; then cp professor.png _site/; fi
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
