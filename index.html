@@ -374,7 +374,8 @@ body[data-mode="live"] #live{gap:8px;padding:10px 12px}
 body[data-mode="live"] #live .note{display:none}
 body[data-mode="live"] .livehead h2{font-size:18px}
 body[data-mode="live"] .livehead{flex-wrap:nowrap;gap:8px}
-body[data-mode="live"] .livebox{height:calc(100dvh - var(--hdr,230px) - 330px);min-height:200px;width:auto;max-width:100%;aspect-ratio:3/4;max-height:none}
+.livehead h2{white-space:nowrap}.livehead .row-actions{flex-wrap:nowrap!important;flex-direction:row!important;gap:6px}
+body[data-mode="live"] .livebox{height:calc(100dvh - var(--hdr,230px) - 275px);min-height:200px;width:auto;max-width:100%;aspect-ratio:3/4;max-height:none}
 body[data-mode="live"] .livestat{font-size:14px;min-height:2.6em}
 body[data-mode="live"] .livelist{max-height:62px}
 body[data-mode="trade"] #trade{padding:10px 12px;gap:10px}
@@ -385,6 +386,29 @@ body[data-mode="trade"] .tside .row-actions{flex-direction:column;gap:6px}
 body[data-mode="trade"] .tside .row-actions .btn{width:100%;min-height:38px;padding:6px 8px}
 body[data-mode="trade"] .tside .field{font-size:13px;padding:6px}
 body[data-mode="trade"] .titem{font-size:13px}
+</style>
+<style>
+/* Kompakter Kopf, größerer Bildschirm (Handy) */
+@media (max-width:1269px){
+  .top .in{padding-block:8px 6px!important;align-items:flex-start}
+  .top .meta{padding-top:24px!important;padding-left:44px;gap:2px!important}
+  .dexlights{top:8px}
+  .lens{width:30px;height:30px;border-width:3px}
+  .led{width:9px;height:9px;margin-top:0}
+  .title{font-size:clamp(20px,5.8vw,32px)!important}
+  .top .sub{font-size:12px}
+  .worth{padding:5px 10px!important;margin-top:4px}
+  .total{font-size:22px!important}
+  .casekeys{padding:0 8px 6px!important}
+  .casekeys button{gap:2px;font-size:10.5px}
+  .ck-round{width:34px;height:34px}.ck-yellow{width:30px;height:30px}.ck-green,.ck-black{width:46px;height:26px}
+  .wrap{margin-top:6px!important;border-top-width:20px!important;border-bottom-width:22px!important}
+  .menudots{top:-19px;padding:4px 10px}
+  .wrap::after{bottom:-17px;height:12px}
+}
+@media (max-width:679px){
+  .wrap{margin-left:3px!important;margin-right:3px!important;border-left-width:6px!important;border-right-width:6px!important;padding-left:10px!important;padding-right:10px!important;border-radius:18px 18px 18px 40px!important}
+}
 </style>
 </head>
 <body>
