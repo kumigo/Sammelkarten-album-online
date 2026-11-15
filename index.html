@@ -4,14 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Pokémon Sammelbuch</title>
-<meta name="theme-color" content="#0C7480">
+<meta name="theme-color" content="#2C5BC4">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Sammelbuch">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@500;600;700;800;900&display=swap">
 <style>
 /* Layout: one phone-width column; sticky value bar on top, scan panel, then the binder list. */
 :root{
@@ -100,7 +100,59 @@ a{color:var(--accent)}
 .err{color:var(--bad)}
 ol.steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;font-size:14px}
 code{font-size:12.5px;background:var(--sunk);padding:1px 5px;border-radius:4px;word-break:break-all}
-</style><style>
+</style>
+<style>
+/* Pokémon-Look: Himmelblau, Sonnengelb, Signalrot; dicke umrandete Titelschrift; Karten wie Sammelkarten mit gelbem Rahmen. */
+:root{
+  --bg:#E6EEFF; --surface:#FFFFFF; --sunk:#EDF2FD; --ink:#16244F; --muted:#56628A; --line:#C9D5F2;
+  --accent:#E3350D; --accent-ink:#FFFFFF; --accent-dark:#A8240A; --gold:#B07A00; --good:#1C8045; --warn:#C2520F; --bad:#C0192F;
+  --sky:#2C5BC4; --sky-2:#1C3F93; --sun:#FFCB05; --sun-dark:#C79A00;
+  --font-display:"Lilita One", "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif;
+  --font-body:"Nunito", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --r:14px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C1430; --surface:#16214A; --sunk:#111A3B; --ink:#EEF3FF; --muted:#A5B2DA; --line:#2A3A72;
+  --accent:#FF5A36; --accent-ink:#FFFFFF; --accent-dark:#B8341A; --gold:#FFD84D; --good:#5BD38E; --warn:#FFA15C; --bad:#FF7A8A;
+  --sky:#1E3F94; --sky-2:#122a68; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C1430; --surface:#16214A; --sunk:#111A3B; --ink:#EEF3FF; --muted:#A5B2DA; --line:#2A3A72;
+  --accent:#FF5A36; --accent-ink:#FFFFFF; --accent-dark:#B8341A; --gold:#FFD84D; --good:#5BD38E; --warn:#FFA15C; --bad:#FF7A8A;
+  --sky:#1E3F94; --sky-2:#122a68; color-scheme:dark}
+html,body{background:var(--bg)}
+body{font-weight:600;background:var(--bg) radial-gradient(circle at 1px 1px, var(--line) 1.2px, transparent 1.3px) 0 0/22px 22px}
+body::before{background:var(--sky-2)}
+.top{background:linear-gradient(160deg,var(--sky),var(--sky-2));border-bottom:4px solid var(--sun)}
+.top .in{align-items:center;padding-block:14px 16px}
+.title{appearance:none;background:none;border:0;padding:0;margin:0;cursor:pointer;text-align:left;font-family:var(--font-display);font-size:clamp(26px,8vw,40px);line-height:1.05;color:var(--sun);-webkit-text-stroke:6px var(--sky-2);paint-order:stroke fill;letter-spacing:.01em;text-shadow:0 4px 0 var(--sky-2);word-break:break-word;min-width:0}
+.title:focus-visible{outline:3px solid #fff;outline-offset:4px;border-radius:6px}
+.top .sub{color:#DCE6FF}
+.top .meta{display:flex;flex-direction:column;gap:6px;min-width:0}
+.worth{background:var(--surface);border:3px solid var(--sun);border-radius:16px;padding:8px 12px;text-align:right;box-shadow:0 4px 0 var(--sky-2);flex:none}
+.top .worth .sub{color:var(--muted)}
+.total{color:var(--gold);font-size:26px}
+h2{font-family:var(--font-display);font-weight:400;font-size:22px;letter-spacing:.02em;color:var(--sky)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) h2{color:var(--sun)}}
+:root[data-theme="dark"] h2{color:var(--sun)}
+.btn{border-width:2px;font-weight:800;border-radius:var(--r)}
+.btn.primary{background:var(--accent);border-color:var(--accent-dark);font-family:var(--font-display);font-weight:400;font-size:20px;letter-spacing:.04em;box-shadow:0 5px 0 var(--accent-dark);text-shadow:0 2px 0 var(--accent-dark)}
+.btn.primary:active{transform:translateY(3px);box-shadow:0 2px 0 var(--accent-dark)}
+.actions .btn:not(.primary){box-shadow:0 5px 0 var(--line)}
+.panel{border:4px solid var(--sun);border-radius:20px;box-shadow:0 6px 0 var(--sun-dark)}
+.cardname{font-family:var(--font-display);font-weight:400;font-size:26px;color:var(--ink)}
+.price{font-family:var(--font-display);font-weight:400;font-size:30px}
+.scanhead img{border:3px solid var(--sun);border-radius:8px}
+.item{border:2px solid var(--line);border-radius:16px;box-shadow:0 3px 0 var(--line)}
+.item .v b{font-family:var(--font-display);font-weight:400;font-size:19px}
+.thumb{border:2px solid var(--sun);border-radius:5px}
+.seg button[aria-pressed=true]{background:var(--sky);color:#fff}
+.kv div{border:2px solid var(--line)}
+.empty{background:var(--surface);border:3px dashed var(--sky)}
+.empty .slots i{border:2px solid var(--sun);background:var(--sunk)}
+.namefield{display:flex;gap:8px;align-items:center}
+.namefield .field{flex:1;min-width:0}
+</style>
+<style>
 :root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 body{margin:0}
 img{max-width:100%}
@@ -112,13 +164,13 @@ label.lbl{font-size:13px;font-weight:600;display:flex;flex-direction:column;gap:
 </head>
 <body>
 <header class="top"><div class="in">
-  <div>
-    <div class="brand">Sammelbuch</div>
+  <div class="meta">
+    <button class="title" type="button" id="title" title="Namen ändern">Mein Sammelbuch</button>
     <div class="sub" id="countLine">Noch keine Karten</div>
   </div>
-  <div class="right">
+  <div class="worth">
     <div class="total" id="total">0,00 €</div>
-    <div class="sub">Gesamtwert (Cardmarket-Trend)</div>
+    <div class="sub">Gesamtwert</div>
   </div>
 </div></header>
 
@@ -157,6 +209,9 @@ label.lbl{font-size:13px;font-weight:600;display:flex;flex-direction:column;gap:
   </section>
 
   <footer class="foot">
+    <label class="lbl" for="ownerName">Dein Name im Titel
+      <span class="namefield"><input class="field" id="ownerName" type="text" maxlength="24" placeholder="z. B. Chris" autocomplete="nickname"><button class="btn small" type="button" id="saveName">Übernehmen</button></span>
+    </label>
     <div class="line"><span id="dataInfo">Kartendaten werden geladen …</span></div>
     <div class="btns">
       <button class="btn small" type="button" id="exportBtn">Backup speichern</button>
@@ -604,6 +659,15 @@ document.addEventListener('click', e => {
   else if (t.dataset.del) setCount(t.dataset.del, 0);
   else if (t.dataset.nodel) { S.confirmDel = null; render(); }
 });
+/* ---------- Name im Titel ---------- */
+function ownerName() { try { return localStorage.getItem('sb-name') || ''; } catch (e) { return ''; } }
+function titleFor(n) { n = n.trim(); if (!n) return 'Mein Sammelbuch'; return (/[sßxzß]$/i.test(n) ? n + '’' : n + 's') + ' Sammelbuch'; }
+function applyName() { const t = titleFor(ownerName()); $('#title').textContent = t; document.title = t; $('#ownerName').value = ownerName(); }
+$('#saveName').addEventListener('click', () => { try { localStorage.setItem('sb-name', $('#ownerName').value.trim()); } catch (e) {} applyName(); });
+$('#ownerName').addEventListener('keydown', e => { if (e.key === 'Enter') $('#saveName').click(); });
+$('#title').addEventListener('click', () => { const f = $('#ownerName'); f.scrollIntoView({behavior: 'smooth', block: 'center'}); setTimeout(() => f.focus(), 300); });
+applyName();
+
 /* ---------- Start ---------- */
 render();
 try { const saved = await idbGet('karten'); if (saved) S.coll = new Map(saved); } catch (e) { $('#storeInfo').innerHTML = '<span class="err">Der Gerätespeicher ist nicht verfügbar (privater Modus?). Karten gehen beim Schließen verloren.</span>'; }
