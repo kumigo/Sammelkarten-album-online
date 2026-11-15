@@ -323,6 +323,27 @@ label.lbl{font-size:13px;font-weight:600;display:flex;flex-direction:column;gap:
 @keyframes jp{50%{transform:translate(-50%,-50%) scale(1.15) rotate(-4deg)}}
 @media (prefers-reduced-motion:reduce){.verdict,.verdict.v3{transition:opacity .2s;animation:none}}
 </style>
+<style>
+@media (min-width:1450px){
+  .dexside{--sw:clamp(300px,calc((100vw - 700px) / 2 - 70px),360px);width:var(--sw);min-height:min(620px,calc(100vh - 230px));justify-content:space-between;gap:24px;padding:30px 28px}
+  .dl{left:calc(50% - 350px - 26px - var(--sw))}
+  .dr{padding-left:40px}
+  .dexside button{font-size:14px}
+  .kb-round{width:88px;height:88px}
+  .kb-slits i{width:60px;height:10px}
+  .kb-row{gap:30px}
+  .kb-green{width:96px;height:54px;border-radius:10px}
+  .dpad{grid-template-columns:40px 40px 40px;grid-template-rows:40px 40px 40px}
+  .dpad .u::after{margin-top:10px}.dpad .d::after{margin-top:16px}.dpad .l::after{margin-left:10px}.dpad .r::after{margin-left:16px}
+  .kb-grill i{width:80px;height:5px}
+  .kb-display{padding:16px 16px}.kb-display b{font-size:30px}.kb-display small{font-size:13px}
+  .kb-blue button{height:46px;font-size:16px}
+  .kb-blue button:first-child{font-size:11px}
+  .kb-white button{height:40px}
+  .kb-black button{height:44px}
+  .kb-yellow{width:62px;height:62px;font-size:11px!important}
+}
+</style>
 </head>
 <body>
 <div id="intro" class="intro" hidden>
