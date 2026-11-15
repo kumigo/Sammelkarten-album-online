@@ -781,13 +781,16 @@ function runIntro() {
   const intro = $('#intro'), text = $('#dlgText'), next = $('#dlgNext'), form = $('#nameForm');
   $('#speaker').textContent = 'Prof. ' + profName();
   const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  let typing = null, full = '';
+  let typing = null, full = '', pending = null, finished = false;
   const say = (s, onDone) => {
-    full = s; clearInterval(typing); text.textContent = ''; let i = 0;
-    if (calm) { text.textContent = s; onDone && onDone(); return; }
-    typing = setInterval(() => { text.textContent = s.slice(0, ++i); if (i >= s.length) { clearInterval(typing); typing = null; onDone && onDone(); } }, 28);
+    full = s; pending = onDone || null; clearInterval(typing); text.textContent = ''; let i = 0;
+    const done = () => { clearInterval(typing); typing = null; text.textContent = full; const f = pending; pending = null; f && f(); };
+    if (calm) { done(); return; }
+    typing = setInterval(() => { text.textContent = s.slice(0, ++i); if (i >= s.length) done(); }, 28);
+    say.done = done;
   };
-  const finishTyping = () => { if (typing) { clearInterval(typing); typing = null; text.textContent = full; return true; } return false; };
+  // Antippen während der Text läuft: Text sofort ganz zeigen und den nächsten Schritt auslösen.
+  const finishTyping = () => { if (typing) { say.done(); return true; } return false; };
   const lines = [
     `Hallo! Herzlich willkommen in der Welt der Sammelkarten! Ich bin Professor ${profName()}.`,
     'Hier fotografierst du deine Karten, und ich sage dir, was sie bei Cardmarket wert sind.',
@@ -795,7 +798,7 @@ function runIntro() {
   ];
   let step = 0;
   const advance = () => {
-    if (finishTyping()) { if (step === lines.length) showForm(); return; }
+    if (finishTyping() || finished) return;
     if (step < lines.length) { const last = step === lines.length - 1; say(lines[step++], last ? showForm : null); }
   };
   const showForm = () => { next.hidden = true; form.hidden = false; setTimeout(() => $('#introName').focus(), 50); };
@@ -806,7 +809,7 @@ function runIntro() {
     const n = $('#introName').value.trim();
     if (!n) { $('#introName').focus(); return; }
     try { localStorage.setItem('sb-name', n); } catch (err) {}
-    applyName(); form.hidden = true;
+    applyName(); form.hidden = true; finished = true;
     say(`Super, ${n}! Dein Kartendex ist bereit. Viel Spaß beim Sammeln!`, () => {
       setTimeout(() => { intro.classList.add('out'); setTimeout(() => { intro.hidden = true; intro.classList.remove('out'); }, calm ? 0 : 500); }, calm ? 600 : 1400);
     });
